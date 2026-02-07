@@ -1,0 +1,36 @@
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 24px;
+  margin: 40px auto;
+  max-width: 1200px;
+
+  background-color: #87ceeb;
+  border-radius: 30px;
+
+  position: sticky;
+  top: 20px;
+  z-index: 100;
+}
+
+
+.logo-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+
+.search-bar {
+  border-radius: 10px;
+  height: 25px;
+  background: #87ceeb;
+  padding: 6px 10px;
+}
+
+.search-icon {
+  color: #888;
+  margin-right: 6px;
+}
+
