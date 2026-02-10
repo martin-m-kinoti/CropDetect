@@ -1,3 +1,4 @@
+/*Navigation bar*/
 .nav-bar {
   display: flex;
   align-items: center;
@@ -11,10 +12,17 @@
   border-radius: 30px;
 
   position: sticky;
-  top: 20px;
-  z-index: 100;
 }
 
+.logo-image-section {
+  display: flex;
+  gap: 10px;
+  font-style: italic;
+  color: #ffffff;
+  font-size: larger;
+  font-weight: 800;
+  text-align: center;
+}
 
 .logo-image {
   width: 50px;
@@ -22,11 +30,45 @@
   border-radius: 50%;
 }
 
-.search-bar {
+.nav-links {
+  display: flex;
+  gap: 150px;
+  font-size: large;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+  box-shadow: 0 0 6px rgb(255, 255, 255);
+  border-radius: 5px;
+}
+
+.search-bar-section {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #888;
   border-radius: 10px;
-  height: 25px;
-  background: #87ceeb;
-  padding: 6px 10px;
+  height: 30px;
+  width: 250px;
+  padding: 6px 12px;
+}
+
+.search-bar-section:hover, .search-bar-section:focus-within{
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 6px rgb(255, 255, 255);
+}
+
+
+.search-bar {
+  height: 30px;
+  border: none;
+  background: transparent;
+  outline: none;
 }
 
 .search-icon {
@@ -34,3 +76,41 @@
   margin-right: 6px;
 }
 
+/*Header section*/
+.header-section {
+  text-align: center;
+  margin: 60px auto;
+  max-width: 1000px;
+  line-height: 1.5;
+}
+
+.heading {
+  font-size: larger;
+  font-weight: 800;
+}
+
+.main-heading {
+  color: #2c3e50
+}
+
+.highlight {
+  color: #007bff;
+  font-style: italic;
+}
+
+.header-desc {
+  font-size: large;
+  color: #555;
+}
+
+/*Crop Diseases Section*/
+.crop-diseases-section {
+  color: #2c3e50;  
+  font-size: larger;
+  font-weight: 800;
+  text-align: center;
+}
+
+.image01 {
+  border-radius: 30px;
+}
