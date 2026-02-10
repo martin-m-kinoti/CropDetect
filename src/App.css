@@ -114,3 +114,28 @@
 .image01 {
   border-radius: 30px;
 }
+
+/*Responsive Design*/
+@media (max-width: 768px) {
+  .nav-bar {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nav-links {
+    gap: 20px;
+  }
+
+  .search-bar-section {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .header-section {
+    padding: 0 20px;
+  }
+
+  .crop-diseases-section {
+    padding: 0 20px;
+  }
+}
