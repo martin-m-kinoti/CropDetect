@@ -46,7 +46,7 @@ function Dashboard() {
                 </div>
                 <div className="nav-links">
                     <Link to="documentation">Documentation</Link>
-                    <Link to='/signin'>Sign In</Link>
+                    <Link to='/signup'>Sign Up</Link>
                     <Link to="/ai-model">AI Model</Link>
                 </div>
 
