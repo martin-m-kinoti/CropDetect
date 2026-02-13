@@ -4,6 +4,7 @@ import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import SignUp from './components/Signup';
 import SignIn from './components/Signin';
+import AIModel from './components/AIModel';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/ai-model" element={<AIModel />} />
       </Routes>
     </Router>
   )

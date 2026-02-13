@@ -1,0 +1,76 @@
+
+.upload-wrapper {
+  background: #87ceeb;
+  padding: 40px;
+  border-radius: 30px;
+  text-align: center;
+  max-width: 600px;
+  margin: 100px auto;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.upload-title {
+  color: #2c3e50;
+  margin-bottom: 25px;
+}
+
+.upload-box-modern {
+  border: 2px dashed #ffffff;
+  background: linear-gradient(135deg, #6fb9e8, #87ceeb);
+  border-radius: 25px;
+  padding: 50px 20px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  color: white;
+}
+
+.upload-box-modern:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.upload-icon {
+  font-size: 40px;
+  margin-bottom: 15px;
+}
+
+.preview-img {
+  max-width: 100%;
+  border-radius: 20px;
+}
+
+.upload-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.upload-btn,
+.camera-btn {
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.upload-btn {
+  background: #2c3e50;
+  color: white;
+}
+
+.upload-btn:hover {
+  background: #1a252f;
+}
+
+.camera-btn {
+  background: #ffffff;
+  color: #2c3e50;
+}
+
+.camera-btn:hover {
+  background: #f1f1f1;
+}
