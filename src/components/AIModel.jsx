@@ -5,14 +5,62 @@ function AIModel({ onImageSelect }) {
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
-  const [preview, setPreview] = useState(null);
 
+  const [preview, setPreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [prediction, setPrediction] = useState("");
+  const [confidence, setConfidence] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Handle file selection
   const handleFile = (file) => {
     if (file) {
-      const imageURL = URL.createObjectURL(file);
-      setPreview(imageURL);
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
       onImageSelect && onImageSelect(file);
     }
+  };
+
+  // Send image to Flask backend
+  const modelPrediction = async () => {
+
+    if (!selectedFile) {
+      setError("Please upload an image first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setPrediction("");
+    setConfidence("");
+
+    try {
+      const formData = new FormData();
+      formData.append("image_upload", selectedFile);
+
+      const response = await fetch(
+        "http://127.0.0.1:5000/ml/predict",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPrediction(data.Predicted);
+        setConfidence(data.Confidence);
+      } else {
+        setError(data.Error || "Prediction failed.");
+      }
+
+    } catch (err) {
+      setError("Server error. Is Flask running?");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -50,6 +98,31 @@ function AIModel({ onImageSelect }) {
           Take Photo
         </button>
       </div>
+
+      <div className="model-predict">
+        <button
+          className="pred-button"
+          onClick={modelPrediction}
+          disabled={loading}
+        >
+          {loading ? "Detecting..." : "Crop Detect"}
+        </button>
+      </div>
+
+      {/* Prediction Output */}
+      {prediction && (
+        <div className="result-box">
+          <h3>Prediction:</h3>
+          <p><strong>{prediction}</strong></p>
+          <p>Confidence: {confidence}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-box">
+          <p>{error}</p>
+        </div>
+      )}
 
       <input
         type="file"
