@@ -48,7 +48,8 @@
 
 .upload-btn,
 .camera-btn,
-.pred-button {
+.pred-button,
+.clear-btn {
   padding: 12px 20px;
   border-radius: 30px;
   border: none;
@@ -57,14 +58,21 @@
   transition: 0.3s ease;
 }
 
-.upload-btn {
+.upload-btn,
+.clear-btn {
   background: #2c3e50;
   color: white;
 }
 
-.upload-btn:hover {
+.upload-btn:hover,
+.clear-btn:hover {
   background: #1a252f;
 }
+
+.clear-btn-div {
+  text-align: center;
+}
+
 
 .camera-btn,
 .pred-button {
@@ -73,10 +81,63 @@
 }
 
 .camera-btn:hover,
-.pred-button {
+.pred-button:hover {
   background: #f1f1f1;
 }
 
 .pred-button {
   margin-top: 20px;
+}
+
+.result-box {
+  background: #ffffffcc;
+  padding: 20px;
+  border-radius: 20px;
+  margin-top: 25px;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.result-box h3 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.details-box {
+  margin-top: 15px;
+  padding-left: 10px;
+}
+
+.details-box p,
+.details-box ul,
+.details-box li {
+  color: #2c3e50;
+  line-height: 1.5;
+}
+
+.details-box ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}
+
+.details-box li {
+  list-style-type: disc;
+}
+
+.details-box strong {
+  color: #1a252f;
+}
+
+.details-box em {
+  font-style: italic;
+  color: #2c3e50;
+}
+
+.error-box {
+  background: #ffcccc;
+  color: #b30000;
+  padding: 15px;
+  border-radius: 15px;
+  margin-top: 20px;
+  text-align: center;
 }
