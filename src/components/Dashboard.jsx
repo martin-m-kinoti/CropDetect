@@ -5,8 +5,6 @@ import { Search, MousePointerClick, Target, Clock, BookOpen, MapPin, Phone, Mail
 
 function Dashboard() {
 
-    /* ---------------- SEARCH LOGIC ---------------- */
-
     const SEARCHABLE_CONTENT = [
         { title: "Crop Diseases Gallery", description: "View crop diseases", ref: "crop-diseases-gallery" },
         { title: "System Features", description: "Learn about system capabilities", ref: "features-section" },
@@ -87,7 +85,6 @@ function Dashboard() {
 
     return (
         <>
-            {/* ---------------- NAVBAR ---------------- */}
             <div className="nav-bar">
                 <div className="logo-image-section">
                     <img src="/logo.png" alt="crop-detect-logo" className="logo-image"/>
@@ -96,11 +93,10 @@ function Dashboard() {
 
                 <div className="nav-links">
                     <Link to="documentation">Documentation</Link>
-                    <Link to='/signup'>Sign Up</Link>
+                    <Link to='/signin'>Sign In</Link>
                     <Link to="/ai-model">AI Model</Link>
                 </div>
 
-                {/* -------- UPDATED SEARCH BAR -------- */}
                 <div className="search-bar-section">
                     <Search className="search-icon" size={18} />
                     <input 
