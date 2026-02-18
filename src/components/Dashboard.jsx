@@ -36,7 +36,6 @@ function Dashboard() {
         setSearchQuery("");
     }, []);
 
-    /* ---------------- IMAGE GALLERY LOGIC ---------------- */
 
     const CROP_IMAGES = [
         { src: "/crop-images/Bacterial Spot.JPG", label: "Bacterial Spot" },
