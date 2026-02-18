@@ -196,7 +196,7 @@ function Dashboard() {
 
                     <div className="footer-contacts" id="footer-contacts">
                         <p><MapPin size={16} /> Nairobi, Kenya</p>
-                        <p><Phone size={16} /> +254 725 000 004</p>
+                        <p><Phone size={16} /> +254 793 002 282</p>
                         <p><Mail size={16} /> support@cropdetect.ai</p>
                     </div>
                 </div>
