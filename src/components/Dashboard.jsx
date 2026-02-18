@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import '../App.css';
-import { Link } from "react-router-dom";    
+import { Link, useNavigate } from "react-router-dom";    
 import { Search, MousePointerClick, Target, Clock, BookOpen, MapPin, Phone, Mail } from "lucide-react";
 
 function Dashboard() {
@@ -22,9 +22,10 @@ function Dashboard() {
         ),
     [searchQuery]);
 
+    const navigate = useNavigate();
     const handleSearchClick = useCallback((refId) => {
         if (refId === "ai-model" || refId === "documentation") {
-            window.location.href = `/${refId}`;
+            navigate(`/${refId}`);
             return;
         }
 
@@ -34,7 +35,7 @@ function Dashboard() {
         }
 
         setSearchQuery("");
-    }, []);
+    }, [navigate]);
 
 
     const CROP_IMAGES = [
@@ -53,7 +54,6 @@ function Dashboard() {
     const [showAll, setShowAll] = useState(false);
     const visibleImages = showAll ? CROP_IMAGES : CROP_IMAGES.slice(0, 6);
 
-    /* ---------------- ORIGINAL FEATURES ---------------- */
 
     const features = [
         {
@@ -91,7 +91,7 @@ function Dashboard() {
                 </div>
 
                 <div className="nav-links">
-                    <Link to="documentation">Documentation</Link>
+                    <Link to="/documentation">Documentation</Link>
                     <Link to='/signin'>Sign In</Link>
                     <Link to="/ai-model">AI Model</Link>
                 </div>
@@ -127,7 +127,6 @@ function Dashboard() {
                 </div>
             </div>
 
-            {/* ---------------- HEADER ---------------- */}
             <div className="header-section">
                 <div className="heading">
                     <h1 className="main-heading">
@@ -141,7 +140,6 @@ function Dashboard() {
                 </div>
             </div>
 
-            {/* -------- UPDATED IMAGE GALLERY -------- */}
             <div 
                 className="crop-images" 
                 id="crop-diseases-gallery"
@@ -172,7 +170,6 @@ function Dashboard() {
                 )}
             </div>
 
-            {/* ---------------- FEATURES ---------------- */}
             <div className="features-section" id="features-section">
                 <h2 className="features-title">System Features</h2>
                 <div className="features-grid">

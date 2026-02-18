@@ -6,6 +6,7 @@ import "./AIModel.css";
 
 function AIModel({ onImageSelect }) {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -75,10 +76,35 @@ function AIModel({ onImageSelect }) {
 
   return (
     <div className="upload-wrapper">
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
+      <div style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}>
+        <button className="menu-button"
+        onClick={() => setMenuOpen(!menuOpen)}
+        >
+          ☰ Menu
         </button>
+
+        {menuOpen && (
+          <div className="dropdown-menu">
+            <button
+            onClick={() => {
+              navigate("/");
+              setMenuOpen(false);
+            }}
+            >
+              Home
+            </button>
+
+            <button
+              onClick={async () => {
+                await handleLogout();
+                setMenuOpen(false);
+              }}
+              >
+                Logout
+              </button>
+          </div>
+        )}
+        
       </div>
 
       <h2 className="upload-title">Upload Your Crop Image</h2>

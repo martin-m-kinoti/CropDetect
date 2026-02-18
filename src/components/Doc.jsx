@@ -79,7 +79,7 @@ function Documentation() {
         <section>
           <h2>6. Accuracy & Limitations</h2>
           <ul>
-            <li>Validation Accuracy: 94-97%</li>
+            <li>Validation Accuracy: 90-97%</li>
             <li>Best performance on clear leaf images</li>
             <li>Performance may reduce in low lighting</li>
             <li>Does not yet support fruit disease detection</li>
