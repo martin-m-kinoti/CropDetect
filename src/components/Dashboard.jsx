@@ -187,7 +187,6 @@ function Dashboard() {
                 </div>
             </div>
 
-            {/* ---------------- FOOTER ---------------- */}
             <footer className="footer-section">
                 <div className="footer-container">
                     <div className="logo-image-section">

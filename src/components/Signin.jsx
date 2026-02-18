@@ -128,17 +128,6 @@ function Signin() {
             />
           )}
 
-          {!isSignUp && (
-            <div className="signin-options">
-              <label>
-                <input type="checkbox" />
-                Remember me
-              </label>
-
-              <span className="forgot-link">Forgot password?</span>
-            </div>
-          )}
-
           <button type="submit" className="signin-btn">
             {isSignUp ? "Sign Up" : "Sign In"}
           </button>

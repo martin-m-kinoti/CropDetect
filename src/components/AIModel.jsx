@@ -1,7 +1,11 @@
 import React, { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 import "./AIModel.css";
 
 function AIModel({ onImageSelect }) {
+  const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -13,6 +17,15 @@ function AIModel({ onImageSelect }) {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/signin");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const handleFile = (file) => {
     if (file) {
@@ -62,6 +75,12 @@ function AIModel({ onImageSelect }) {
 
   return (
     <div className="upload-wrapper">
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+
       <h2 className="upload-title">Upload Your Crop Image</h2>
 
       <div className="upload-box-modern" onClick={() => fileInputRef.current.click()}>

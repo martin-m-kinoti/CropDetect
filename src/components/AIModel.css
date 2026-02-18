@@ -49,7 +49,8 @@
 .upload-btn,
 .camera-btn,
 .pred-button,
-.clear-btn {
+.clear-btn,
+.logout-btn {
   padding: 12px 20px;
   border-radius: 30px;
   border: none;
@@ -59,12 +60,14 @@
 }
 
 .upload-btn,
+.logout-btn,
 .clear-btn {
   background: #2c3e50;
   color: white;
 }
 
 .upload-btn:hover,
+.logout-btn:hover,
 .clear-btn:hover {
   background: #1a252f;
 }
