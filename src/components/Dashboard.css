@@ -727,130 +727,99 @@
   }
 }
 
-@media (max-width: 768px) {
-  .db-navbar {
-    padding: 0 1.2rem;
-    gap: 0.8rem;
-  }
-  .db-nav-links {
-    display: none;
-  }
-  .db-search-input {
-    width: 150px;
-  }
-  .db-search-input:focus {
-    width: 175px;
-  }
-
-  .db-hero {
-    padding: 3.5rem 1.5rem;
-    min-height: auto;
-  }
-  .db-hero-stats {
-    gap: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .db-section {
-    padding: 3rem 1.5rem;
-  }
-
-  .db-image-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-
-  .db-step:not(:last-child)::after {
-    display: none;
-  }
-
-  .db-features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .db-disease-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-
-  .db-footer-inner {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    padding: 3rem 1.5rem 2rem;
-  }
-  .db-footer-bottom {
-    padding: 1rem 1.5rem;
-  }
-}
-
+/* ==================================
+   MOBILE FIRST (DEFAULT)
+================================== */
 
 /* Layout spacing */
 .db-section {
   padding: 40px 16px;
 }
 
-/* Navbar */
+/* ================= NAVBAR ================= */
+
 .db-navbar {
   padding: 12px 16px;
   flex-wrap: wrap;
-}
-
-.db-nav-links {
-  display: none; /* Hide full nav on mobile */
-}
-
-/* Hero */
-.db-hero h1 {
-  font-size: 26px;
-  line-height: 1.3;
-}
-
-.db-hero-desc {
-  font-size: 15px;
-}
-
-/* Buttons – big for fingers */
-.db-btn-primary,
-.db-btn-secondary {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-  min-height: 48px;
-  border-radius: 8px;
-}
-
-/* Grids collapse to 1 column */
-.db-image-grid,
-.db-features-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-}
-
-.db-disease-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* CENTER everything */
   gap: 12px;
 }
 
-/* Steps stacked vertically */
-.db-steps {
+/* Center logo + name */
+.db-nav-brand {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Footer stacked */
-.db-footer-inner {
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
   text-align: center;
-  gap: 24px;
 }
 
-/* Improve outdoor readability */
-body {
+.db-nav-logo {
+  height: 34px;
+}
+
+.db-nav-wordmark {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Hide desktop nav links on mobile */
+.db-nav-links {
+  display: none;
+}
+
+/* ================= SEARCH BAR ================= */
+
+.db-search-wrap {
+  width: 100%;
+  position: relative;
+}
+
+.db-search-input {
+  width: 100%;
+  padding: 14px 16px 14px 40px;
+  font-size: 16px; /* Prevents iOS zoom */
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  outline: none;
+  min-height: 48px;
+}
+
+.db-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+}
+
+/* Dropdown full width */
+.db-search-dropdown {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
   background: #ffffff;
-  color: #1a1a1a;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  z-index: 1000;
+  max-height: 250px;
+  overflow-y: auto;
 }
 
-.db-section-title {
-  font-size: 22px;
+/* Larger touch items */
+.db-search-item {
+  padding: 14px;
+  text-align: left;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.db-search-item:hover {
+  background: #f4f4f4;
 }
