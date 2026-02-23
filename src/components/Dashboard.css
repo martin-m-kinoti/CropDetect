@@ -1,6 +1,6 @@
 /*navbar*/
 .db-navbar {
-  background: #006400;
+  background: #50B450;
   height: 68px;
   padding: 0 3rem;
   border-radius: 10px;
@@ -278,7 +278,8 @@
   align-items: center;
 }
 
-.db-btn-primary {
+.db-btn-primary,
+.db-btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -296,28 +297,11 @@
   box-shadow: 0 4px 20px rgba(122, 182, 72, 0.35);
 }
 
-.db-btn-primary:hover {
+.db-btn-primary:hover,
+.db-btn-secondary:hover {
   background: #8fd055;
   transform: translateY(-2px);
   box-shadow: 0 6px 28px rgba(122, 182, 72, 0.45);
-}
-
-.db-btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--cream);
-  border: 1.5px solid rgba(245, 240, 232, 0.3);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  font-size: 1rem;
-  padding: 0.85rem 2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.db-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(245, 240, 232, 0.5);
 }
 
 .db-hero-stats {
@@ -492,7 +476,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--leaf);
-  color: white;
+  color: #333333;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -623,8 +607,8 @@
 
 /* ── Footer ──────────────────────────────────────────── */
 .db-footer {
-  background: var(--soil);
-  color: rgba(245, 240, 232, 0.6);
+  background: #50B450;
+  color: #333333;
 }
 
 .db-footer-inner {
@@ -717,109 +701,35 @@
   margin: 0 auto;
 }
 
-/* ── Responsive ───────────────────────────────────────── */
+
 @media (max-width: 768px) {
+
   .db-navbar {
-  padding: 12px 16px;
-  flex-wrap: wrap;
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* CENTER everything */
-  gap: 12px;
+    position: relative;
+    align-items: center;
+    flex-direction: column;
+    height: auto;
+    padding: 15px;
+    gap: 15px;
   }
-  .db-navbar {
-  padding: 12px 16px;
-  flex-wrap: wrap;
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* CENTER everything */
-  gap: 12px;
-}
 
-/* Center logo + name */
-.db-nav-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  text-align: center;
-}
+  .db-nav-links {
+    gap: 15px;
+    flex-direction: column;
+  }
 
-.db-nav-logo {
-  height: 34px;
-}
-
-.db-nav-wordmark {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* Hide desktop nav links on mobile */
-.db-nav-links {
-  display: none;
-}
-
-/* ================= SEARCH BAR ================= */
-
-.db-search-wrap {
-  width: 100%;
-  position: relative;
-}
-
-.db-search-input {
-  width: 100%;
-  padding: 14px 16px 14px 40px;
-  font-size: 16px; /* Prevents iOS zoom */
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  outline: none;
-  min-height: 48px;
-}
-
-.db-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #777;
-}
-
-/* Dropdown full width */
-.db-search-dropdown {
-  position: absolute;
-  top: 110%;
-  left: 0;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-  z-index: 1000;
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-/* Larger touch items */
-.db-search-item {
-  padding: 14px;
-  text-align: left;
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.db-search-item:hover {
-  background: #f4f4f4;
-}
+  db
 
 
+
+  
   .db-footer-inner {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    text-align: center;
   }
+
   .db-footer-brand {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 }
-
-
