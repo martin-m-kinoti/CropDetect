@@ -1,5 +1,5 @@
 .upload-wrapper {
-  background: #87ceeb;
+  background: #50B450;
   padding: 40px;
   border-radius: 30px;
   text-align: center;
@@ -15,12 +15,12 @@
 
 .upload-box-modern {
   border: 2px dashed #ffffff;
-  background: linear-gradient(135deg, #6fb9e8, #87ceeb);
+  background: #ffffff;
   border-radius: 25px;
   padding: 50px 20px;
   cursor: pointer;
   transition: 0.3s ease;
-  color: white;
+  color: #1a252f;
 }
 
 .upload-box-modern:hover {
@@ -29,6 +29,7 @@
 }
 
 .upload-icon {
+  color: #1a252f;
   font-size: 40px;
   margin-bottom: 15px;
 }

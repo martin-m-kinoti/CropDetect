@@ -44,7 +44,7 @@ const FEATURES = [
     icon: <Microscope size={26} />,
     bg: "#e8f0e4",
     title: "AI-Powered Detection",
-    text: "Our model, trained on 80,000+ images, identifies 10 major tomato diseases with 97% accuracy — even from smartphone photos.",
+    text: "Our model, trained on 80,000+ images, identifies 10 major tomato diseases with over 90% accuracy.",
   },
   {
     icon: <Zap size={26} />,
@@ -56,7 +56,7 @@ const FEATURES = [
     icon: <Pill size={26} />,
     bg: "#fce8e6",
     title: "Treatment Recommendations",
-    text: "Receive specific, actionable steps for each detected disease — from fungicides to cultural practices.",
+    text: "Receive specific, actionable steps for each detected disease, from fungicides to cultural practices.",
   },
   {
     icon: <BarChart2 size={26} />,
@@ -68,7 +68,7 @@ const FEATURES = [
     icon: <Smartphone size={26} />,
     bg: "#fff9e6",
     title: "Works on Any Device",
-    text: "Use CropDetect from your phone in the field, your tablet in the greenhouse, or your desktop at home.",
+    text: "Use Crop Detect from your phone in the field, your tablet in the greenhouse, or your desktop at home.",
   },
   {
     icon: <Lock size={26} />,
@@ -78,7 +78,6 @@ const FEATURES = [
   },
 ];
 
-/* How It Works steps */
 const STEPS = [
   {
     n: "1",
@@ -88,27 +87,27 @@ const STEPS = [
   {
     n: "2",
     title: "Upload & Analyze",
-    text: "Upload the photo to CropDetect. Our AI model processes it instantly.",
+    text: "Upload the photo to Crop Detect. Our AI model processes it instantly.",
   },
   {
     n: "3",
-    title: "Get Your Plan",
-    text: "View your diagnosis, severity rating, and a step-by-step treatment plan.",
+    title: "Get Your Treatment Plan",
+    text: "View your diagnosis, and a step-by-step treatment plan.",
   },
 ];
 
 /* Disease tag strip */
 const DISEASE_TAGS = [
-  { name: "Early Blight",      icon: "🍂", note: "Alternaria solani"       },
-  { name: "Late Blight",       icon: "💀", note: "Phytophthora infestans"  },
-  { name: "Leaf Mold",         icon: "🌿", note: "Passalora fulva"         },
-  { name: "Bacterial Spot",    icon: "🔴", note: "Xanthomonas spp."        },
-  { name: "Mosaic Virus",      icon: "🧩", note: "TMV / CMV"               },
-  { name: "Septoria Spot",     icon: "🔵", note: "Septoria lycopersici"    },
-  { name: "Spider Mites",      icon: "🕷️", note: "Tetranychus urticae"    },
-  { name: "Target Spot",       icon: "🎯", note: "Corynespora cassiicola"  },
-  { name: "Yellow Curl Virus", icon: "🌀", note: "TYLCV"                   },
-  { name: "Healthy Plant",     icon: "✅", note: "No disease detected"      },
+  { name: "Early Blight",      note: "Alternaria solani"       },
+  { name: "Late Blight",       note: "Phytophthora infestans"  },
+  { name: "Leaf Mold",         note: "Passalora fulva"         },
+  { name: "Bacterial Spot",    note: "Xanthomonas spp."        },
+  { name: "Mosaic Virus",      note: "TMV / CMV"               },
+  { name: "Septoria Spot",     note: "Septoria lycopersici"    },
+  { name: "Spider Mites",      note: "Tetranychus urticae"    },
+  { name: "Target Spot",       note: "Corynespora cassiicola"  },
+  { name: "Yellow Curl Virus", note: "TYLCV"                   },
+  { name: "Healthy Plant",     note: "No disease detected"      },
 ];
 
 export default function Dashboard() {
@@ -237,12 +236,12 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Crop Disease Gallery ─────────────────────────── */}
+      {/* Crop Disease Gallery*/}
       <section className="db-section db-gallery-section" id="crop-diseases-gallery">
         <div className="db-section-label">Disease Library</div>
         <h2 className="db-section-title">Crop Diseases Gallery</h2>
         <p className="db-section-sub">
-          Browse real images of the diseases our model is trained to detect —
+          Browse real images of the diseases our model is trained to detect
           from bacterial infections to viral conditions affecting tomato crops.
         </p>
 
@@ -272,13 +271,13 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* ── How It Works ────────────────────────────────── */}
+      {/* How It Works  */}
       <section className="db-section db-how-section" id="how-it-works">
         <div className="db-section-label">How It Works</div>
         <h2 className="db-section-title">Three simple steps</h2>
         <p className="db-section-sub">
-          No technical knowledge required — if you can take a photo, you can
-          use CropDetect.
+          No technical knowledge required. If you can take a photo, you can
+          use Crop Detect.
         </p>
 
         <div className="db-steps">
@@ -292,12 +291,12 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────── */}
+      {/* Features */}
       <section className="db-section db-features-section" id="features-section">
-        <div className="db-section-label">Why CropDetect</div>
+        <div className="db-section-label">Why Crop Detect</div>
         <h2 className="db-section-title">Everything a tomato farmer needs</h2>
         <p className="db-section-sub">
-          From early detection to treatment — we've built the tools to help you
+          From early detection to treatment, we've built the tools to help you
           protect your crop before it's too late.
         </p>
 
@@ -314,12 +313,12 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Disease Tag Strip ────────────────────────────── */}
+      {/* Disease Tag Strip  */}
       <section className="db-section db-diseases-section" id="disease-library">
         <div className="db-section-label">What We Detect</div>
         <h2 className="db-section-title">Diseases we identify</h2>
         <p className="db-section-sub">
-          CropDetect is trained to identify the most common and economically
+          Crop Detect is trained to identify the most common and economically
           damaging tomato diseases affecting small-scale farmers.
         </p>
 
@@ -334,12 +333,12 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────── */}
+      {/* Footer */}
       <footer className="db-footer">
         <div className="db-footer-inner">
           <div className="db-footer-brand">
             <img src="/logo.png" alt="Crop Detect logo" className="db-footer-logo" />
-            <span className="db-footer-wordmark">Crop<span>Detect</span></span>
+            <span className="db-footer-wordmark">Crop<span> Detect</span></span>
             <p className="db-footer-tagline">
               AI-powered disease detection for small-scale farmers.
             </p>
