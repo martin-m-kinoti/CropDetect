@@ -51,7 +51,8 @@
 .camera-btn,
 .pred-button,
 .clear-btn,
-.logout-btn {
+.logout-btn,
+.location-share-btn {
   padding: 12px 20px;
   border-radius: 30px;
   border: none;

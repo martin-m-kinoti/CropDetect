@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
@@ -19,6 +19,9 @@ function AIModel({ onImageSelect }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [locationAccepted, setLocationAccepted] = useState(false);
+  const [latLon, setLatLon] = useState(null);
+  const [soilType, setSoilType] = useState("");
   const [weather, setWeather] = useState(null);
   const [riskLevel, setRiskLevel] = useState("");
 
@@ -39,53 +42,61 @@ function AIModel({ onImageSelect }) {
     }
   };
 
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
 
-  const fetchWeather = async (lat, lon) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationAccepted(true);
+        const { latitude, longitude } = position.coords;
+        setLatLon({ latitude, longitude });
+        fetchFarmData(latitude, longitude);
+      },
+      (error) => {
+        setLocationAccepted(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert(
+              "Location access denied. Please allow it to fetch soil and weather data."
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            alert("The request to get your location timed out.");
+            break;
+          default:
+            alert("An unknown error occurred while fetching your location.");
+        }
+        console.error("Geolocation error:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const fetchFarmData = async (lat, lon) => {
     try {
       const response = await fetch(
-        `https://www.meteosource.com/api/v1/free/point?lat=3.94&lon=41.86&key=wggzqafw2k6gdcr6eo89mpibeut6r3xdfmv39foo`
+        `http://127.0.0.1:5000/farm/api/farm-data?lat=${lat}&lon=${lon}`
       );
-
       const data = await response.json();
-
-      const weatherData = {
-        temperature: data.current.temperature,
-        rainfall: data.current.precipitation.total,
-        windSpeed: data.current.wind.speed,
-        cloudCover: data.current.cloud_cover
-      };
-
-      setWeather(weatherData);
-      console.log("Weather loaded:", weatherData);
-
-    } catch (error) {
-      console.error("Weather fetch error:", error);
+      setSoilType(data.soil_type);
+      setWeather(data.weather);
+    } catch (err) {
+      console.error("Farm data fetch error:", err);
     }
   };
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchWeather(latitude, longitude);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-        }
-      );
-    }
-  }, []);
-
   const calculateRisk = (disease, weather) => {
     if (!weather) return "Unknown";
-
     let score = 0;
-
     if (weather.rainfall > 2) score += 2;
     if (weather.temperature >= 24 && weather.temperature <= 30) score += 2;
-    if (weather.cloudCover > 70) score += 1;
-
+    if (weather.cloud_cover > 70) score += 1;
     if (score >= 4) return "High";
     if (score >= 2) return "Moderate";
     return "Low";
@@ -108,10 +119,10 @@ function AIModel({ onImageSelect }) {
       const formData = new FormData();
       formData.append("image_upload", selectedFile);
 
-      const response = await fetch(
-        `http://127.0.0.1:5000/ml/predict`,
-        { method: "POST", body: formData }
-      );
+      const response = await fetch(`http://127.0.0.1:5000/ml/predict`, {
+        method: "POST",
+        body: formData
+      });
 
       const data = await response.json();
 
@@ -124,11 +135,9 @@ function AIModel({ onImageSelect }) {
           const risk = calculateRisk(data.Predicted, weather);
           setRiskLevel(risk);
         }
-
       } else {
         setError(data.Error || "Prediction failed.");
       }
-
     } catch {
       setError("Server error. Is Flask running?");
     }
@@ -138,43 +147,42 @@ function AIModel({ onImageSelect }) {
 
   return (
     <div className="upload-wrapper">
-      <div style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}>
-        <button
-          className="menu-button"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
+      <div
+        style={{ display: "flex", justifyContent: "flex-end", position: "relative" }}
+      >
+        <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>
           ☰ Menu
         </button>
-
         {menuOpen && (
           <div className="dropdown-menu">
-            <button
-              onClick={() => {
-                navigate("/");
-                setMenuOpen(false);
-              }}
-            >
-              Home
-            </button>
-
-            <button
-              onClick={async () => {
-                await handleLogout();
-                setMenuOpen(false);
-              }}
-            >
-              Logout
-            </button>
+            <button onClick={() => { navigate("/"); setMenuOpen(false); }}>Home</button>
+            <button onClick={async () => { await handleLogout(); setMenuOpen(false); }}>Logout</button>
           </div>
         )}
       </div>
 
+      {!locationAccepted && (
+        <div className="location-warning">
+          <p>Please allow location access to fetch soil and weather data for your farm.</p>
+          <button onClick={requestLocation} className="location-share-btn">
+            Share Location
+          </button>
+        </div>
+      )}
+
+      {locationAccepted && soilType && weather && (
+        <div className="farm-data">
+          <p><strong>Soil Type:</strong> {soilType}</p>
+          <p><strong>Temperature:</strong> {weather.temperature}°C</p>
+          <p><strong>Rainfall:</strong> {weather.rainfall} mm</p>
+          <p><strong>Wind Speed:</strong> {weather.wind_speed} m/s</p>
+          <p><strong>Cloud Cover:</strong> {weather.cloud_cover}%</p>
+        </div>
+      )}
+
       <h2 className="upload-title">Upload Your Crop Image</h2>
 
-      <div
-        className="upload-box-modern"
-        onClick={() => fileInputRef.current.click()}
-      >
+      <div className="upload-box-modern" onClick={() => fileInputRef.current.click()}>
         {preview ? (
           <img src={preview} alt="Preview" className="preview-img" />
         ) : (
@@ -187,27 +195,12 @@ function AIModel({ onImageSelect }) {
       </div>
 
       <div className="upload-actions">
-        <button
-          className="upload-btn"
-          onClick={() => fileInputRef.current.click()}
-        >
-          Upload Image
-        </button>
-
-        <button
-          className="camera-btn"
-          onClick={() => cameraInputRef.current.click()}
-        >
-          Take Photo
-        </button>
+        <button className="upload-btn" onClick={() => fileInputRef.current.click()}>Upload Image</button>
+        <button className="camera-btn" onClick={() => cameraInputRef.current.click()}>Take Photo</button>
       </div>
 
       <div className="model-predict">
-        <button
-          className="pred-button"
-          onClick={modelPrediction}
-          disabled={loading}
-        >
+        <button className="pred-button" onClick={modelPrediction} disabled={loading}>
           {loading ? "Detecting..." : "Crop Detect"}
         </button>
       </div>
@@ -217,112 +210,42 @@ function AIModel({ onImageSelect }) {
           <h3>Prediction:</h3>
           <p><strong>{prediction}</strong></p>
           <p>Confidence: {confidence}</p>
-
-          {riskLevel && (
-            <p>
-              <strong>Environmental Risk:</strong> {riskLevel}
-            </p>
-          )}
+          {riskLevel && <p><strong>Environmental Risk:</strong> {riskLevel}</p>}
 
           {details && (
             <>
               <div className="details-box">
-                {details.description && (
-                  <p>
-                    <strong>Description:</strong> {details.description}
-                  </p>
-                )}
-
+                {details.description && <p><strong>Description:</strong> {details.description}</p>}
                 {details.symptoms && (
                   <div>
                     <strong>Symptoms:</strong>
-                    <ul>
-                      {details.symptoms.map((symptom, index) => (
-                        <li key={index}>{symptom}</li>
-                      ))}
-                    </ul>
+                    <ul>{details.symptoms.map((s, i) => <li key={i}>{s}</li>)}</ul>
                   </div>
                 )}
-
                 {details.treatment && (
                   <div>
-                    <strong>Treatment:</strong>
-                    {details.treatment.chemical && (
-                      <p>
-                        <em>Chemical:</em>{" "}
-                        {details.treatment.chemical.join(", ")}
-                      </p>
-                    )}
-                    {details.treatment.organic && (
-                      <p>
-                        <em>Organic:</em>{" "}
-                        {details.treatment.organic.join(", ")}
-                      </p>
-                    )}
+                    {details.treatment.chemical && <p><em>Chemical:</em> {details.treatment.chemical.join(", ")}</p>}
+                    {details.treatment.organic && <p><em>Organic:</em> {details.treatment.organic.join(", ")}</p>}
                   </div>
                 )}
-
-                {details.prevention && (
-                  <div>
-                    <strong>Prevention:</strong>
-                    <ul>
-                      {details.prevention.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {details.confidence_note && (
-                  <p>
-                    <strong>Note:</strong> {details.confidence_note}
-                  </p>
-                )}
+                {details.prevention && <div><strong>Prevention:</strong><ul>{details.prevention.map((i, idx) => <li key={idx}>{i}</li>)}</ul></div>}
+                {details.confidence_note && <p><strong>Note:</strong> {details.confidence_note}</p>}
               </div>
 
               <div className="clear-btn-div">
-                <button
-                  className="clear-btn"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setPreview(null);
-                    setPrediction("");
-                    setConfidence("");
-                    setDetails(null);
-                    setError("");
-                    setRiskLevel("");
-                  }}
-                >
-                  Clear
-                </button>
+                <button className="clear-btn" onClick={() => {
+                  setSelectedFile(null); setPreview(null); setPrediction(""); setConfidence(""); setDetails(null); setError(""); setRiskLevel("");
+                }}>Clear</button>
               </div>
             </>
           )}
         </div>
       )}
 
-      {error && (
-        <div className="error-box">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <div className="error-box"><p>{error}</p></div>}
 
-      <input
-        type="file"
-        accept="image/*"
-        ref={fileInputRef}
-        hidden
-        onChange={(e) => handleFile(e.target.files[0])}
-      />
-
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        ref={cameraInputRef}
-        hidden
-        onChange={(e) => handleFile(e.target.files[0])}
-      />
+      <input type="file" accept="image/*" ref={fileInputRef} hidden onChange={(e) => handleFile(e.target.files[0])} />
+      <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={(e) => handleFile(e.target.files[0])} />
     </div>
   );
 }
