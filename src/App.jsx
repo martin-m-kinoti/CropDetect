@@ -31,7 +31,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Dashboard user={user} />} />
 
         {/* Redirect logged-in users away from SignIn */}
         <Route
@@ -46,14 +46,7 @@ function App() {
         />
 
         {/* Protected Route */}
-        <Route
-          path="/ai-model"
-          element={
-            <ProtectedRoute user={user}>
-              <AIModel />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/ai-model" element={<ProtectedRoute user={user}><AIModel user={user} /></ProtectedRoute>} />
 
         <Route path="/documentation" element={<Documentation />} />
       </Routes>

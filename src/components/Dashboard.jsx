@@ -4,8 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Search, MapPin, Phone, Mail,
   Microscope, Zap, Pill, BarChart2, Smartphone, Lock,
-  ChevronDown, ArrowUpRight, Leaf, ShieldCheck,
+  ChevronDown, ArrowUpRight, LogOut, User,
 } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 const CROPS = [
   {
@@ -14,7 +16,7 @@ const CROPS = [
     emoji: "🍅",
     accent: "#e05c3a",
     accentRgb: "224,92,58",
-    heroImage: "/crop-images/Early Blight.JPG",
+    heroImage: "/crop-images/tomatoes/Early Blight.JPG",
     heroDisease: "Early Blight",
     heroConfidence: 94,
     tagline: "Kenya's most-grown smallholder crop",
@@ -31,16 +33,16 @@ const CROPS = [
       { name: "Healthy Plant",      note: "No disease detected",     severity: "none"   },
     ],
     gallery: [
-      { src: "/crop-images/Bacterial Spot.JPG",         label: "Bacterial Spot"         },
-      { src: "/crop-images/Early Blight.JPG",           label: "Early Blight"           },
-      { src: "/crop-images/Healthy.JPG",                label: "Healthy"                },
-      { src: "/crop-images/Late Blight.JPG",            label: "Late Blight"            },
-      { src: "/crop-images/Leaf Mold.JPG",              label: "Leaf Mold"              },
-      { src: "/crop-images/Mosaic Virus.JPG",           label: "Mosaic Virus"           },
-      { src: "/crop-images/Septoria Leaf Spot.JPG",     label: "Septoria Leaf Spot"     },
-      { src: "/crop-images/Spider Mites.JPG",           label: "Spider Mites"           },
-      { src: "/crop-images/Target Spot.JPG",            label: "Target Spot"            },
-      { src: "/crop-images/Yellow Leaf Curl Virus.JPG", label: "Yellow Leaf Curl Virus" },
+      { src: "/crop-images/tomatoes/Bacterial Spot.JPG",         label: "Bacterial Spot"         },
+      { src: "/crop-images/tomatoes/Early Blight.JPG",           label: "Early Blight"           },
+      { src: "/crop-images/tomatoes/Healthy.JPG",                label: "Healthy"                },
+      { src: "/crop-images/tomatoes/Late Blight.JPG",            label: "Late Blight"            },
+      { src: "/crop-images/tomatoes/Leaf Mold.JPG",              label: "Leaf Mold"              },
+      { src: "/crop-images/tomatoes/Mosaic Virus.JPG",           label: "Mosaic Virus"           },
+      { src: "/crop-images/tomatoes/Septoria Leaf Spot.JPG",     label: "Septoria Leaf Spot"     },
+      { src: "/crop-images/tomatoes/Spider Mites.JPG",           label: "Spider Mites"           },
+      { src: "/crop-images/tomatoes/Target Spot.JPG",            label: "Target Spot"            },
+      { src: "/crop-images/tomatoes/Yellow Leaf Curl Virus.JPG", label: "Yellow Leaf Curl Virus" },
     ],
   },
   {
@@ -49,27 +51,21 @@ const CROPS = [
     emoji: "🌽",
     accent: "#d4a020",
     accentRgb: "212,160,32",
-    heroImage: "/crop-images/Maize Streak Virus.JPG",
-    heroDisease: "Maize Streak Virus",
+    heroImage: "/crop-images/maize/Cercospora_leaf_spot Gray_leaf_spot.JPG",
+    heroDisease: "Cercospora Leaf Spot",
     heroConfidence: 91,
     tagline: "Kenya's staple food crop",
     diseases: [
-      { name: "Fall Armyworm",         note: "Spodoptera frugiperda",  severity: "high"   },
-      { name: "Maize Streak Virus",    note: "MSV (Mastrevirus)",      severity: "high"   },
-      { name: "Grey Leaf Spot",        note: "Cercospora zeae-maydis", severity: "medium" },
-      { name: "Northern Leaf Blight",  note: "Exserohilum turcicum",   severity: "high"   },
-      { name: "Common Rust",           note: "Puccinia sorghi",        severity: "medium" },
-      { name: "Banded Leaf Spot",      note: "Rhizoctonia solani",     severity: "medium" },
-      { name: "Smut",                  note: "Ustilago maydis",        severity: "low"    },
-      { name: "Healthy Plant",         note: "No disease detected",    severity: "none"   },
+      { name: "Cercospora Leaf Spot", note: "Cercospora zeae-maydis (Gray Leaf Spot pathogen)", severity: "medium" },
+      { name: "Common Rust",          note: "Puccinia sorghi",                                  severity: "medium" },
+      { name: "Northern Leaf Blight", note: "Exserohilum turcicum",                             severity: "high"   },
+      { name: "Healthy Plant",        note: "No disease detected",                              severity: "none"   },
     ],
     gallery: [
-      { src: "/crop-images/Fall Armyworm.JPG",         label: "Fall Armyworm"         },
-      { src: "/crop-images/Maize Streak Virus.JPG",    label: "Maize Streak Virus"    },
-      { src: "/crop-images/Grey Leaf Spot.JPG",        label: "Grey Leaf Spot"        },
-      { src: "/crop-images/Northern Leaf Blight.JPG",  label: "Northern Leaf Blight"  },
-      { src: "/crop-images/Common Rust.JPG",           label: "Common Rust"           },
-      { src: "/crop-images/Maize Smut.JPG",            label: "Smut"                  },
+      { src: "/crop-images/maize/Cercospora_leaf_spot Gray_leaf_spot.JPG", label: "Cercospora Leaf Spot" },
+      { src: "/crop-images/maize/Common_rust.JPG",                         label: "Common Rust"          },
+      { src: "/crop-images/maize/Northern_Leaf_Blight.JPG",                label: "Northern Leaf Blight" },
+      { src: "/crop-images/maize/Maize Healthy.jpg",                       label: "Healthy Plant"        },
     ],
   },
   {
@@ -78,27 +74,19 @@ const CROPS = [
     emoji: "🥔",
     accent: "#8a7650",
     accentRgb: "138,118,80",
-    heroImage: "/crop-images/Potato Late Blight.JPG",
-    heroDisease: "Potato Late Blight",
+    heroImage: "/crop-images/potatoes/Early_blight.JPG",
+    heroDisease: "Potato Early Blight",
     heroConfidence: 89,
     tagline: "High-value crop across Kenya's highlands",
     diseases: [
-      { name: "Late Blight",       note: "Phytophthora infestans",  severity: "high"   },
-      { name: "Early Blight",      note: "Alternaria solani",       severity: "medium" },
-      { name: "Black Scurf",       note: "Rhizoctonia solani",      severity: "medium" },
-      { name: "Common Scab",       note: "Streptomyces scabiei",    severity: "low"    },
-      { name: "Bacterial Wilt",    note: "Ralstonia solanacearum",  severity: "high"   },
-      { name: "Mosaic Virus",      note: "PVX / PVY",               severity: "medium" },
-      { name: "Leaf Roll Virus",   note: "PLRV",                    severity: "high"   },
-      { name: "Healthy Plant",     note: "No disease detected",     severity: "none"   },
+      { name: "Late Blight",   note: "Phytophthora infestans", severity: "high"   },
+      { name: "Early Blight",  note: "Alternaria solani",      severity: "medium" },
+      { name: "Healthy Plant", note: "No disease detected",    severity: "none"   },
     ],
     gallery: [
-      { src: "/crop-images/Potato Late Blight.JPG",  label: "Late Blight"   },
-      { src: "/crop-images/Potato Early Blight.JPG", label: "Early Blight"  },
-      { src: "/crop-images/Black Scurf.JPG",         label: "Black Scurf"   },
-      { src: "/crop-images/Bacterial Wilt.JPG",      label: "Bacterial Wilt"},
-      { src: "/crop-images/Potato Mosaic.JPG",       label: "Mosaic Virus"  },
-      { src: "/crop-images/Leaf Roll Virus.JPG",     label: "Leaf Roll Virus"},
+      { src: "/crop-images/potatoes/Late_blight.JPG",  label: "Late Blight"   },
+      { src: "/crop-images/potatoes/Early_blight.JPG", label: "Early Blight"  },
+      { src: "/crop-images/potatoes/Healthy.JPG",      label: "Healthy Plant" },
     ],
   },
 ];
@@ -115,18 +103,18 @@ const SEARCHABLE_CONTENT = [
 ];
 
 const FEATURES = [
-  { icon: <Microscope size={22} />, accent: "var(--moss)",  title: "AI-Powered Detection",     text: "Three dedicated models, trained on 80,000+ images across tomato, maize, and potato crops — achieving over 90% accuracy."        },
-  { icon: <Zap size={22} />,        accent: "var(--gold)",  title: "Instant Results",           text: "Get your diagnosis and tailored treatment plan in under 5 seconds. No waiting, no lab visits."                                    },
-  { icon: <Pill size={22} />,       accent: "var(--rust)",  title: "Treatment Recommendations", text: "Receive specific, actionable steps for each detected disease — from fungicides to cultural practices."                           },
-  { icon: <BarChart2 size={22} />,  accent: "var(--moss)",  title: "Scan History",              text: "Track the health of all your crops over time with a full history of scans and outcomes."                                         },
-  { icon: <Smartphone size={22} />, accent: "var(--gold)",  title: "Works on Any Device",       text: "Use Crop Detect from your phone in the field, your tablet in the greenhouse, or your desktop at home."                           },
-  { icon: <Lock size={22} />,       accent: "var(--rust)",  title: "Secure & Private",          text: "Your farm data is yours. We never share your images or scan results with third parties."                                         },
+  { icon: <Microscope size={22} />, accent: "var(--moss)",  title: "AI-Powered Detection",     text: "Three dedicated models, trained on 80,000+ images across tomato, maize, and potato crops. Achieving over 90% accuracy."  },
+  { icon: <Zap size={22} />,        accent: "var(--gold)",  title: "Instant Results",           text: "Get your diagnosis and tailored treatment plan in under 5 seconds. No waiting, no lab visits."                            },
+  { icon: <Pill size={22} />,       accent: "var(--rust)",  title: "Treatment Recommendations", text: "Receive specific, actionable steps for each detected disease. From fungicides to cultural practices."                     },
+  { icon: <BarChart2 size={22} />,  accent: "var(--moss)",  title: "Scan History",              text: "Track the health of all your crops over time with a full history of scans and outcomes."                                  },
+  { icon: <Smartphone size={22} />, accent: "var(--gold)",  title: "Works on Any Device",       text: "Use Crop Detect from your phone in the field, your tablet in the greenhouse, or your desktop at home."                    },
+  { icon: <Lock size={22} />,       accent: "var(--rust)",  title: "Secure & Private",          text: "Your farm data is yours. We never share your images or scan results with third parties."                                  },
 ];
 
 const STEPS = [
-  { n: "01", icon: "📸", title: "Take a Photo",            text: "Photograph the affected leaves or stems on your crop. Good natural lighting helps accuracy."       },
-  { n: "02", icon: "🧠", title: "Select Crop & Analyze",   text: "Choose your crop type — tomato, maize, or potato — upload the photo, and our AI processes it."     },
-  { n: "03", icon: "💊", title: "Get Your Treatment Plan", text: "View your diagnosis, severity rating, and a step-by-step treatment plan tailored to your crop."     },
+  { n: "01", title: "Take a Photo",            text: "Photograph the affected leaves or stems on your crop. Good natural lighting helps accuracy."      },
+  { n: "02", title: "Select Crop & Analyze",   text: "Choose your crop type — tomato, maize, or potato — upload the photo, and our AI processes it."    },
+  { n: "03", title: "Get Your Treatment Plan", text: "View your diagnosis, severity rating, and a step-by-step treatment plan tailored to your crop."    },
 ];
 
 function AnimatedStat({ target, suffix = "", label }) {
@@ -178,15 +166,23 @@ function Reveal({ children, delay = 0, className = "" }) {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ user }) {
   const [searchQuery, setSearchQuery]   = useState("");
   const [showAll, setShowAll]           = useState(false);
   const [scrolled, setScrolled]         = useState(false);
   const [activeCropId, setActiveCropId] = useState("tomato");
+  const [avatarOpen, setAvatarOpen]     = useState(false);
+  const avatarRef                       = useRef(null);
   const navigate                        = useNavigate();
 
   const activeCrop    = CROPS.find(c => c.id === activeCropId);
   const visibleImages = showAll ? activeCrop.gallery : activeCrop.gallery.slice(0, 6);
+
+  const avatarLetter = user
+    ? (user.displayName?.[0] || user.email?.[0] || "U").toUpperCase()
+    : null;
+
+  const displayName = user?.displayName || user?.email || "Farmer";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -195,6 +191,16 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => { setShowAll(false); }, [activeCropId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target)) {
+        setAvatarOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredResults = useMemo(() =>
     SEARCHABLE_CONTENT.filter(item =>
@@ -213,6 +219,15 @@ export default function Dashboard() {
 
   const selectCrop = useCallback((id) => setActiveCropId(id), []);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setAvatarOpen(false);
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
+
   return (
     <>
       <nav className={`db-navbar ${scrolled ? "db-navbar--scrolled" : ""}`}>
@@ -225,32 +240,73 @@ export default function Dashboard() {
 
         <div className="db-nav-links">
           <Link to="/documentation">Documentation</Link>
-          <Link to="/signin" className="db-nav-signin">Sign In</Link>
+          {!user && (
+            <Link to="/signin" className="db-nav-signin">Sign In</Link>
+          )}
           <Link to="/ai-model" className="db-nav-cta">
             Try AI Model <ArrowUpRight size={14} />
           </Link>
         </div>
 
-        <div className="db-search-wrap">
-          <Search size={15} className="db-search-icon" />
-          <input
-            type="text"
-            placeholder="Search…"
-            className="db-search-input"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <div className="db-search-dropdown">
-              {filteredResults.length > 0 ? (
-                filteredResults.map((item, i) => (
-                  <button key={i} className="db-search-item" onClick={() => handleSearchClick(item.ref)}>
-                    <span className="db-search-item-title">{item.title}</span>
-                    <span className="db-search-item-desc">{item.description}</span>
+        <div className="db-nav-right">
+          <div className="db-search-wrap">
+            <Search size={15} className="db-search-icon" />
+            <input
+              type="text"
+              placeholder="Search…"
+              className="db-search-input"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <div className="db-search-dropdown">
+                {filteredResults.length > 0 ? (
+                  filteredResults.map((item, i) => (
+                    <button key={i} className="db-search-item" onClick={() => handleSearchClick(item.ref)}>
+                      <span className="db-search-item-title">{item.title}</span>
+                      <span className="db-search-item-desc">{item.description}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="db-search-item db-search-empty">No results found</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {user && (
+            <div className="db-avatar-wrap" ref={avatarRef}>
+              <button
+                className={`db-avatar ${avatarOpen ? "db-avatar--open" : ""}`}
+                onClick={() => setAvatarOpen(p => !p)}
+                aria-label="Account menu"
+              >
+                {avatarLetter}
+              </button>
+
+              {avatarOpen && (
+                <div className="db-avatar-dropdown">
+                  <div className="db-avatar-dropdown-header">
+                    <div className="db-avatar-dropdown-badge">{avatarLetter}</div>
+                    <div className="db-avatar-dropdown-info">
+                      <span className="db-avatar-dropdown-name">{displayName}</span>
+                      <span className="db-avatar-dropdown-email">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="db-avatar-dropdown-divider" />
+                  <button
+                    className="db-avatar-dropdown-item"
+                    onClick={() => { navigate("/ai-model"); setAvatarOpen(false); }}
+                  >
+                    <User size={14} />
+                    My Scans
                   </button>
-                ))
-              ) : (
-                <div className="db-search-item db-search-empty">No results found</div>
+                  <div className="db-avatar-dropdown-divider" />
+                  <button className="db-avatar-dropdown-item db-avatar-dropdown-item--logout" onClick={handleLogout}>
+                    <LogOut size={14} />
+                    Sign Out
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -265,20 +321,18 @@ export default function Dashboard() {
 
         <div className="db-hero-content">
           <div className="db-hero-eyebrow">
-            <Leaf size={12} />
-            <span>AI-Powered Crop Health · Kenya</span>
-            <ShieldCheck size={12} />
+            <span>AI-Powered Crop Health</span>
           </div>
 
           <h1 className="db-hero-title">
             Diagnose Your<br />
-            <em>Kenyan Crops</em><br />
+            <em>Crops</em><br />
             Instantly
           </h1>
 
           <p className="db-hero-desc">
             Built for small-scale farmers across Kenya. Select your crop, upload a photo,
-            and get an AI-powered diagnosis in seconds — protecting your harvest before diseases spread.
+            and get an AI-powered diagnosis in seconds. Protecting your harvest before diseases spread.
           </p>
 
           <div className="db-crop-selector">
@@ -315,7 +369,7 @@ export default function Dashboard() {
             <div className="db-stat-divider" />
             <AnimatedStat target="3"  suffix=""  label="Crop Models" />
             <div className="db-stat-divider" />
-            <AnimatedStat target="26" suffix="+" label="Diseases Covered" />
+            <AnimatedStat target="15" suffix="+" label="Diseases Covered" />
             <div className="db-stat-divider" />
             <AnimatedStat target="5"  suffix="s" label="Analysis Time" />
           </div>
@@ -476,7 +530,6 @@ export default function Dashboard() {
               <Reveal key={i} delay={i * 120}>
                 <div className="db-step">
                   <div className="db-step-num">{s.n}</div>
-                  <div className="db-step-icon">{s.icon}</div>
                   <h4>{s.title}</h4>
                   <p>{s.text}</p>
                 </div>
@@ -586,9 +639,8 @@ export default function Dashboard() {
               Built with care for African agriculture.
             </p>
             <div className="db-footer-badges">
-              <span className="db-footer-badge">🇰🇪 Made in Kenya</span>
-              <span className="db-footer-badge">🌱 For Farmers</span>
-              <span className="db-footer-badge">🍅🌽🥔 3 Crops</span>
+              <span className="db-footer-badge">For Farmers</span>
+              <span className="db-footer-badge">3 Crops</span>
             </div>
           </div>
 
@@ -609,7 +661,9 @@ export default function Dashboard() {
             <h4>Quick Links</h4>
             <Link to="/ai-model">AI Model</Link>
             <Link to="/documentation">Documentation</Link>
-            <Link to="/signin">Sign In</Link>
+            {!user && (
+              <Link to="/signin" className="db-footer-nav-signin">Sign In</Link>
+            )}
           </div>
         </div>
 

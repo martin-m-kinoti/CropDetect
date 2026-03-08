@@ -4,652 +4,630 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "./AIModel.css";
 
-/* ─────────────────────────────────────────────────────────────────────
-   FARM CONTEXT RECOMMENDATION ENGINE
-   Synthesises: detected disease + soil type + live weather + other crops
-   ───────────────────────────────────────────────────────────────────── */
+/* ─── API endpoints ─────────────────────────────────────── */
+const API_BASE    = "http://127.0.0.1:5000";
+const PREDICT_URL = `${API_BASE}/ml/predict`;
+const WEATHER_URL = (lat, lon) => `${API_BASE}/farm/api/farm-data?lat=${lat}&lon=${lon}`;
+const RECS_URL    = (disease, crop, soil, otherCrops) =>
+  `${API_BASE}/api/recommendations?disease=${encodeURIComponent(disease)}&crop=${encodeURIComponent(crop)}&soil=${encodeURIComponent(soil)}&crops=${encodeURIComponent(otherCrops)}`;
 
-const SOLANACEOUS_CROPS = ["potato", "pepper", "eggplant", "aubergine", "tobacco"];
+/* ─── Supported crops ────────────────────────────────────── */
+const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
 
-const COMPANION_BENEFITS = {
-  maize:  "Maize as a windbreak can reduce fungal spore dispersal by up to 40%. Plant on the upwind side of tomato rows.",
-  basil:  "Basil repels aphids that vector mosaic virus. Intercrop between tomato rows.",
-  garlic: "Garlic has antifungal properties — plant near tomato rows for natural disease suppression.",
-  onion:  "Onions deter soil-borne pests relevant to bacterial diseases. Excellent border crop.",
+/* Model class label -> MongoDB disease name map
+ * Keys:   exactly what Flask returns in "predicted_disease"
+ * Values: exactly what is stored in MongoDB "disease" field
+ */
+const DISEASE_LABEL_MAP = {
+  // Tomato
+  "Tomato___Bacterial_spot":         "Bacterial Spot",
+  "Tomato___Early_blight":           "Early Blight",
+  "Tomato___Late_blight":            "Late Blight",
+  "Tomato___Leaf_Mold":              "Leaf Mold",
+  "Tomato___Septoria_leaf_spot":     "Septoria Leaf Spot",
+  "Tomato___Spider_mites":           "Spider Mites",
+  "Tomato___Target_Spot":            "Target Spot",
+  "Tomato___Yellow_Leaf_Curl_Virus": "Yellow Leaf Curl Virus",
+  "Tomato___mosaic_virus":           "Mosaic Virus",
+  "Tomato___healthy":                "Healthy",
+  // Maize
+  "Maize___Cercospora_leaf_spot":    "Cercospora Leaf Spot",
+  "Maize___Common_rust":             "Common Rust",
+  "Maize___Northern_Leaf_Blight":    "Northern Leaf Blight",
+  "Maize___healthy":                 "Healthy Maize",
+  // Potato
+  "Potato___Early_blight":           "Potato Early Blight",
+  "Potato___Late_blight":            "Potato Late Blight",
+  "Potato___healthy":                "Healthy Potato",
 };
 
-const WEATHER_RULES = {
-  spray_blocked_rainfall: 2,
-  spray_blocked_wind: 8,
-  high_humidity_cloud: 75,
-  fungal_temp_min: 18,
-  fungal_temp_max: 28,
-  bacterial_temp_min: 24,
-};
-
-const SOIL_NOTES = {
-  clay: {
-    fungal: "Clay soil retains excess moisture — dig drainage channels urgently to limit fungal spread.",
-    bacterial: "Waterlogged clay is ideal for bacterial spread. Switch to raised beds where possible.",
-    general: "Avoid overhead irrigation on clay. Drip irrigation reduces leaf wetness significantly.",
-  },
-  sandy: {
-    fungal: "Sandy soil drains quickly — risk of drought stress which weakens plant immunity.",
-    bacterial: "Sandy soils dry fast; bacterial diseases spread less through soil but monitor leaf contact.",
-    general: "Apply organic mulch to retain moisture and buffer temperature swings.",
-  },
-  loam: {
-    fungal: "Loam is well-balanced — standard fungicide schedules apply without modification.",
-    bacterial: "Good drainage in loam limits bacterial persistence in soil. Focus on foliar hygiene.",
-    general: "Ideal soil type. Maintain organic matter above 3% for best disease resistance.",
-  },
-  volcanic: {
-    fungal: "Volcanic soils retain moisture in pockets — inspect low-lying areas of the farm first.",
-    bacterial: "High mineral content may support beneficial soil microbes. Consider biocontrol agents.",
-    general: "Rich in potassium which boosts tomato cell wall strength and natural disease resistance.",
-  },
-};
-
-function getSoilCategory(soilType = "") {
-  const s = soilType.toLowerCase();
-  if (s.includes("clay")) return "clay";
-  if (s.includes("sand")) return "sandy";
-  if (s.includes("loam") || s.includes("silt")) return "loam";
-  if (s.includes("volcanic") || s.includes("andosol")) return "volcanic";
-  return "loam";
+/** Maps a raw model class string to the MongoDB disease name.
+ *  Falls back to the raw string if no mapping is found. */
+function normaliseDiseaseLabel(raw = "") {
+  return DISEASE_LABEL_MAP[raw] ?? raw;
 }
 
-function getDiseaseCategory(disease = "") {
-  const d = disease.toLowerCase();
-  if (d.includes("blight") || d.includes("mold") || d.includes("mites") ||
-      d.includes("septoria") || d.includes("target")) return "fungal";
-  if (d.includes("bacterial") || d.includes("spot")) return "bacterial";
-  if (d.includes("virus") || d.includes("mosaic") || d.includes("curl")) return "viral";
-  if (d.includes("healthy")) return "healthy";
-  return "fungal";
-}
-
-function buildContextualRecommendations({ disease, soilType, weather, otherCrops }) {
-  const diseaseCategory = getDiseaseCategory(disease);
-  const soilCat  = getSoilCategory(soilType);
-  const soilNote = SOIL_NOTES[soilCat] || SOIL_NOTES.loam;
-
-  const recs = {
-    immediate: [], treatment: [], farming_practice: [],
-    other_crops_advice: [], weather_warnings: [], risk_score: 0,
-  };
-
-  if (diseaseCategory === "healthy") {
-    recs.immediate.push("✅ Your tomato plant appears healthy. Maintain current practices.");
-    recs.treatment.push("No treatment required. Continue regular monitoring every 3–5 days.");
-    recs.riskLabel = "Low";
-    return recs;
-  }
-
-  /* Weather warnings */
-  if (weather) {
-    if (weather.rainfall > WEATHER_RULES.spray_blocked_rainfall) {
-      recs.weather_warnings.push("🌧 Active rainfall detected — do NOT apply sprays now. Rain washes off treatments entirely. Reschedule for a dry morning window.");
-      recs.risk_score += 2;
-    }
-    if (weather.wind_speed > WEATHER_RULES.spray_blocked_wind) {
-      recs.weather_warnings.push(`💨 High winds (${weather.wind_speed} m/s) will cause spray drift onto neighbouring crops. Wait for wind below 8 m/s — ideally early morning.`);
-    }
-    if (weather.cloud_cover > WEATHER_RULES.high_humidity_cloud) {
-      recs.weather_warnings.push("☁️ Heavy cloud cover = high humidity. Prime conditions for fungal spread. Apply preventive copper-based sprays once weather clears.");
-      if (diseaseCategory === "fungal") recs.risk_score += 2;
-    }
-    if (weather.temperature >= WEATHER_RULES.fungal_temp_min && weather.temperature <= WEATHER_RULES.fungal_temp_max && diseaseCategory === "fungal") {
-      recs.weather_warnings.push(`🌡 Temperature (${weather.temperature}°C) is in the ideal range for fungal spread. Act within 24–48 hours.`);
-      recs.risk_score += 1;
-    }
-    if (weather.temperature >= WEATHER_RULES.bacterial_temp_min && diseaseCategory === "bacterial") {
-      recs.weather_warnings.push(`🌡 High temperature (${weather.temperature}°C) accelerates bacterial multiplication. Reduce plant stress with consistent irrigation.`);
-      recs.risk_score += 1;
-    }
-    if (weather.rainfall === 0 && diseaseCategory !== "viral") {
-      recs.immediate.push("🕗 Dry conditions detected — optimal spray window right now. Apply treatments within the next 6 hours if possible.");
-    }
-  }
-
-  /* Immediate actions */
-  recs.immediate.push(`Remove and destroy (do not compost) visibly infected ${disease.toLowerCase()} leaves immediately to reduce inoculum load.`);
-  if (diseaseCategory === "fungal")   recs.immediate.push("Prune lower leaves touching the soil and space plants to improve airflow between rows.");
-  if (diseaseCategory === "bacterial") recs.immediate.push("Sanitise all pruning tools with 70% alcohol or 10% bleach solution between each plant.");
-  if (diseaseCategory === "viral")    recs.immediate.push("Control whiteflies and aphids immediately — they are the primary vectors for this virus. Remove heavily infected plants.");
-
-  /* Treatment (weather-aware) */
-  const sprayBlocked = weather && weather.rainfall > WEATHER_RULES.spray_blocked_rainfall;
-  if (!sprayBlocked) {
-    if (diseaseCategory === "fungal") {
-      recs.treatment.push("Chemical: Mancozeb (2g/L) or Chlorothalonil — spray every 7–10 days, ensuring full leaf coverage including undersides.");
-      recs.treatment.push("Organic: Copper oxychloride (2.5g/L) — effective and less disruptive to soil biology. Safe near waterways.");
-      recs.treatment.push("Biofungicide: Trichoderma-based soil drench reduces re-infection from the root zone and builds long-term soil health.");
-    }
-    if (diseaseCategory === "bacterial") {
-      recs.treatment.push("Chemical: Copper hydroxide (Kocide) at 2g/L — spray foliage thoroughly, including leaf undersides.");
-      recs.treatment.push("Organic: Neem oil (5ml/L) + copper soap mix — reduces spread without chemical residue, safe for pollinators.");
-      recs.treatment.push("Avoid excess nitrogen fertiliser — it produces lush, disease-susceptible growth. Reduce N application by 20–30%.");
-    }
-    if (diseaseCategory === "viral") {
-      recs.treatment.push("No curative treatment exists for viral infections. Remove severely infected plants promptly to protect the rest.");
-      recs.treatment.push("Chemical vector control: Imidacloprid or Thiamethoxam to eliminate whiteflies and aphids that spread the virus.");
-      recs.treatment.push("Organic vector control: Yellow sticky traps + neem oil (3ml/L) every 5 days. Inspect new growth daily.");
-    }
-  } else {
-    recs.treatment.push("⏸ All spray treatments are on hold due to current rainfall. Prepare materials now and apply once it has been dry for at least 2 hours.");
-  }
-
-  /* Soil-specific practices */
-  recs.farming_practice.push(soilNote[diseaseCategory] || soilNote.general);
-  recs.farming_practice.push(soilNote.general);
-  recs.farming_practice.push("Mulch around plant bases to prevent soil splash-back during rain — a primary disease transmission pathway.");
-  if (diseaseCategory === "fungal") {
-    recs.farming_practice.push("Switch to drip irrigation if currently using overhead sprinklers. Prolonged wet foliage is the #1 driver of fungal spread.");
-  }
-
-  /* Other crops advice */
-  const normalised = otherCrops.map(c => c.trim().toLowerCase()).filter(Boolean);
-  if (normalised.length === 0) {
-    recs.other_crops_advice.push("No other crops declared. Add your other farm crops above to receive cross-crop disease and intercropping advice.");
-  }
-
-  normalised.forEach((crop) => {
-    const isSolan = SOLANACEOUS_CROPS.some(s => crop.includes(s));
-    const companion = Object.entries(COMPANION_BENEFITS).find(([k]) => crop.includes(k));
-
-    if (isSolan) {
-      recs.other_crops_advice.push(
-        `⚠️ ${crop.charAt(0).toUpperCase() + crop.slice(1)} is in the Solanaceae family (same as tomato). The detected ${disease} can spread to your ${crop} plants. Maintain 10m+ separation and inspect them immediately.`
-      );
-      if (diseaseCategory === "fungal") {
-        recs.other_crops_advice.push(`Apply the same fungicide schedule to ${crop} as a precaution — do not wait for visible symptoms.`);
-      }
-    } else if (companion) {
-      recs.other_crops_advice.push(`✅ ${companion[0].charAt(0).toUpperCase() + companion[0].slice(1)}: ${companion[1]}`);
-    } else if (crop.includes("maize") || crop.includes("corn")) {
-      recs.other_crops_advice.push("🌽 Maize: Not susceptible to tomato diseases. Position maize rows on the upwind side as a natural windbreak to reduce spore dispersal onto tomato rows.");
-    } else if (crop.includes("bean") || crop.includes("legume")) {
-      recs.other_crops_advice.push(`✅ ${crop.charAt(0).toUpperCase() + crop.slice(1)}: Legumes fix atmospheric nitrogen, benefiting neighbouring tomatoes. Low cross-infection risk — safe to intercrop with 60cm+ row spacing.`);
-    } else {
-      recs.other_crops_advice.push(`${crop.charAt(0).toUpperCase() + crop.slice(1)}: No known cross-infection risk with ${disease}. Monitor for general pest pressure and maintain separation.`);
-    }
-  });
-
-  if (normalised.length > 1) {
-    recs.other_crops_advice.push("🌿 Mixed-farm note: Crop diversity generally reduces overall disease pressure. Ensure row spacing allows adequate airflow between crop zones.");
-  }
-
-  recs.riskLabel = recs.risk_score >= 4 ? "High" : recs.risk_score >= 2 ? "Moderate" : "Low";
-  return recs;
-}
-
-/* ── Inline SVG Icons ── */
-const Icon = {
-  Upload: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
-      <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
-    </svg>
-  ),
-  Camera: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>
-    </svg>
-  ),
-  Scan: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-    </svg>
-  ),
-  Pin: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-    </svg>
-  ),
-  Leaf: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 20A7 7 0 014.36 7.36c2.14.11 5.03.97 7.64 3.64.69.73 1.29 1.52 1.77 2.32C15.05 10.5 17.37 8.7 20 8c0 7.5-5 12-9 12z"/>
-      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
-    </svg>
-  ),
-  Alert: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
-  ),
-  Home: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
-  ),
-  Logout: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/>
-      <line x1="21" y1="12" x2="9" y2="12"/>
-    </svg>
-  ),
-  Plus: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  ),
-  X: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  ),
+/* ─── Severity colour map ────────────────────────────────── */
+const SEVERITY_COLORS = {
+  High:     "#c45c3a",
+  Moderate: "#d4a843",
+  Low:      "#62a050",
+  Healthy:  "#8cc63f",
 };
 
-/* ── Result Tabs Component ── */
-function ResultTabs({ prediction, confidence, details, recs, weather, soilType }) {
-  const [tab, setTab] = useState("diagnosis");
-  const TABS = [
-    { id: "diagnosis", label: "Diagnosis"    },
-    { id: "treatment", label: "Treatment"    },
-    { id: "farm",      label: "Farm Context" },
-    { id: "crops",     label: "Your Crops"   },
-  ];
+/* ─── Inline icons ───────────────────────────────────────── */
+const Icons = {
+  Upload: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
+  Camera: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+  Scan:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>,
+  Pin:    () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+  Home:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Logout: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  Plus:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  X:      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Alert:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Check:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+};
 
+/* ─── Crop emoji map ─────────────────────────────────────── */
+const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
+
+/* ─── Confidence ring ────────────────────────────────────── */
+function ConfidenceRing({ value }) {
+  const pct  = parseFloat(value) || 0;
+  const circ = 106.8;
   return (
-    <div className="ai-results">
-      <div className="ai-result-header">
-        <div className="ai-result-meta">
-          <div className={`ai-risk-badge ai-risk-badge--${(recs.riskLabel || "low").toLowerCase()}`}>
-            {recs.riskLabel || "Low"} Risk
-          </div>
-          <h2 className="ai-result-disease">{prediction}</h2>
-          <p className="ai-result-sub">Scan complete · Context-aware analysis</p>
-        </div>
-        <div className="ai-confidence-ring">
-          <svg viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="3.5"/>
-            <circle
-              cx="20" cy="20" r="17" fill="none"
-              stroke="var(--sprout)" strokeWidth="3.5"
-              strokeDasharray={`${(parseFloat(confidence) || 0) * 106.8 / 100} 106.8`}
-              strokeLinecap="round"
-              transform="rotate(-90 20 20)"
-            />
-          </svg>
-          <div className="ai-confidence-inner">
-            <span className="ai-confidence-pct">{confidence}</span>
-            <span className="ai-confidence-lbl">conf.</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="ai-tabs">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`ai-tab ${tab === t.id ? "ai-tab--active" : ""}`}
-            onClick={() => setTab(t.id)}
-          >{t.label}</button>
-        ))}
-      </div>
-
-      <div className="ai-tab-content">
-
-        {tab === "diagnosis" && (
-          <>
-            {recs.weather_warnings.length > 0 && (
-              <div className="ai-alert-block">
-                <div className="ai-alert-title"><Icon.Alert /> Live Weather Alerts</div>
-                {recs.weather_warnings.map((w, i) => <p key={i}>{w}</p>)}
-              </div>
-            )}
-            {details?.description && (
-              <div className="ai-info-block">
-                <h4>About this disease</h4>
-                <p>{details.description}</p>
-              </div>
-            )}
-            {details?.symptoms && (
-              <div className="ai-info-block">
-                <h4>Symptoms</h4>
-                <ul>{details.symptoms.map((s, i) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-            {recs.immediate.length > 0 && (
-              <div className="ai-info-block ai-info-block--urgent">
-                <h4>⚡ Immediate Actions</h4>
-                <ul>{recs.immediate.map((a, i) => <li key={i}>{a}</li>)}</ul>
-              </div>
-            )}
-            {details?.confidence_note && <p className="ai-note">{details.confidence_note}</p>}
-          </>
-        )}
-
-        {tab === "treatment" && (
-          <>
-            <div className="ai-info-block">
-              <h4>Treatment Plan</h4>
-              <p className="ai-block-sub">Adapted to current weather conditions at your location.</p>
-              <ul>{recs.treatment.map((t, i) => <li key={i}>{t}</li>)}</ul>
-            </div>
-            {details?.prevention && (
-              <div className="ai-info-block">
-                <h4>Prevention for next season</h4>
-                <ul>{details.prevention.map((p, i) => <li key={i}>{p}</li>)}</ul>
-              </div>
-            )}
-          </>
-        )}
-
-        {tab === "farm" && (
-          <>
-            <div className="ai-condition-chips">
-              {weather && <>
-                <div className="ai-chip">🌡 {weather.temperature}°C</div>
-                <div className="ai-chip">🌧 {weather.rainfall}mm</div>
-                <div className="ai-chip">💨 {weather.wind_speed}m/s</div>
-                <div className="ai-chip">☁️ {weather.cloud_cover}%</div>
-              </>}
-              {soilType && <div className="ai-chip">🌱 {soilType}</div>}
-            </div>
-            <div className="ai-info-block">
-              <h4>Soil &amp; Farming Practice</h4>
-              <p className="ai-block-sub">Recommendations adjusted for your soil type.</p>
-              <ul>{recs.farming_practice.map((f, i) => <li key={i}>{f}</li>)}</ul>
-            </div>
-          </>
-        )}
-
-        {tab === "crops" && (
-          <div className="ai-info-block">
-            <h4>Cross-Farm Advice</h4>
-            <p className="ai-block-sub">Based on your declared crops and the detected disease. Mixed farming risks and companion benefits included.</p>
-            <ul>{recs.other_crops_advice.map((a, i) => <li key={i}>{a}</li>)}</ul>
-          </div>
-        )}
+    <div className="aim-ring">
+      <svg viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3.5"/>
+        <circle cx="20" cy="20" r="17" fill="none" stroke="var(--sprout)" strokeWidth="3.5"
+          strokeDasharray={`${pct * circ / 100} ${circ}`}
+          strokeLinecap="round" transform="rotate(-90 20 20)"
+          style={{ transition: "stroke-dasharray 0.8s ease" }}
+        />
+      </svg>
+      <div className="aim-ring-inner">
+        <span className="aim-ring-pct">{value || "0%"}</span>
+        <span className="aim-ring-lbl">conf.</span>
       </div>
     </div>
   );
 }
 
-/* ── Main Export ── */
-export default function AIModel({ onImageSelect }) {
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen]         = useState(false);
-  const fileInputRef                    = useRef(null);
-  const cameraInputRef                  = useRef(null);
-  const cropInputRef                    = useRef(null);
+/* ─── Result panel ───────────────────────────────────────── */
+function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soilType }) {
+  const [tab, setTab] = useState("diagnosis");
 
-  const [preview, setPreview]           = useState(null);
+  const TABS = [
+    { id: "diagnosis", label: "🔍 Diagnosis"  },
+    { id: "treatment", label: "💊 Treatment"  },
+    { id: "farm",      label: "🌍 Conditions" },
+    { id: "crops",     label: "🌿 Your Crops" },
+  ];
+
+  const riskColor = SEVERITY_COLORS[recs?.risk_level] || SEVERITY_COLORS.Low;
+
+  return (
+    <div className="aim-result">
+
+      {/* Header */}
+      <div className="aim-result-header">
+        <div className="aim-result-meta">
+          <div className="aim-result-crop-badge">
+            {CROP_EMOJI[selectedCrop] || "🌱"} {selectedCrop}
+          </div>
+          <div
+            className="aim-risk-pill"
+            style={{ background: `${riskColor}22`, color: riskColor, borderColor: `${riskColor}55` }}
+          >
+            {recs?.risk_level || "Low"} Risk
+          </div>
+          <h2 className="aim-result-disease">{prediction}</h2>
+          <p className="aim-result-sub">Analysis complete · Context-aware result</p>
+        </div>
+        <ConfidenceRing value={confidence} />
+      </div>
+
+      {/* Tabs */}
+      <div className="aim-tabs" role="tablist">
+        {TABS.map(t => (
+          <button
+            key={t.id} role="tab" aria-selected={tab === t.id}
+            className={`aim-tab ${tab === t.id ? "aim-tab--active" : ""}`}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="aim-tab-body" role="tabpanel">
+
+        {tab === "diagnosis" && <>
+          {recs?.weather_warnings?.length > 0 && (
+            <div className="aim-alert-box">
+              <div className="aim-alert-title"><Icons.Alert /> Live Weather Alerts</div>
+              {recs.weather_warnings.map((w, i) => <p key={i}>{w}</p>)}
+            </div>
+          )}
+          {recs?.description && (
+            <div className="aim-info-box">
+              <h4>About This Disease</h4>
+              <p>{recs.description}</p>
+            </div>
+          )}
+          {recs?.symptoms?.length > 0 && (
+            <div className="aim-info-box">
+              <h4>Symptoms to Look For</h4>
+              <ul>{recs.symptoms.map((s, i) => <li key={i}><Icons.Check />{s}</li>)}</ul>
+            </div>
+          )}
+          {recs?.immediate?.length > 0 && (
+            <div className="aim-info-box aim-info-box--urgent">
+              <h4>⚡ Do These Now</h4>
+              <ul>{recs.immediate.map((a, i) => <li key={i}><Icons.Check />{a}</li>)}</ul>
+            </div>
+          )}
+        </>}
+
+        {tab === "treatment" && <>
+          <div className="aim-info-box">
+            <h4>Treatment Plan</h4>
+            <p className="aim-sub-note">Adapted to today's weather at your farm.</p>
+            {recs?.treatment?.length > 0
+              ? <ul>{recs.treatment.map((t, i) => <li key={i}><Icons.Check />{t}</li>)}</ul>
+              : <p>No treatment recommendations available.</p>
+            }
+          </div>
+          {recs?.prevention?.length > 0 && (
+            <div className="aim-info-box">
+              <h4>Prevent It Next Season</h4>
+              <ul>{recs.prevention.map((p, i) => <li key={i}><Icons.Check />{p}</li>)}</ul>
+            </div>
+          )}
+        </>}
+
+        {tab === "farm" && <>
+          {(weather || soilType) && (
+            <div className="aim-weather-grid">
+              {weather?.temperature != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.temperature}°C</span><span className="aim-weather-lbl">Temperature</span></div>}
+              {weather?.rainfall    != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.rainfall}mm</span><span className="aim-weather-lbl">Rainfall</span></div>}
+              {weather?.wind_speed  != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.wind_speed}m/s</span><span className="aim-weather-lbl">Wind</span></div>}
+              {weather?.humidity    != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.humidity}%</span><span className="aim-weather-lbl">Humidity</span></div>}
+              {soilType && <div className="aim-weather-chip aim-weather-chip--soil"><span className="aim-weather-val">{soilType}</span><span className="aim-weather-lbl">Soil Type</span></div>}
+            </div>
+          )}
+          <div className="aim-info-box">
+            <h4>Farming Advice for Your Conditions</h4>
+            <p className="aim-sub-note">Based on your soil type and current weather.</p>
+            {recs?.farming_practice?.length > 0
+              ? <ul>{recs.farming_practice.map((f, i) => <li key={i}><Icons.Check />{f}</li>)}</ul>
+              : <p>Share your location above to get personalised conditions advice.</p>
+            }
+          </div>
+        </>}
+
+        {tab === "crops" && (
+          <div className="aim-info-box">
+            <h4>Your Other Crops</h4>
+            <p className="aim-sub-note">Cross-contamination risks and companion planting benefits.</p>
+            {recs?.other_crops_advice?.length > 0
+              ? <ul>{recs.other_crops_advice.map((a, i) => <li key={i}>{a}</li>)}</ul>
+              : <p>Add your other farm crops in the panel on the left to see cross-farm advice here.</p>
+            }
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────── */
+export default function AIModel({ user }) {
+  const navigate       = useNavigate();
+  const fileInputRef   = useRef(null);
+  const cameraInputRef = useRef(null);
+  const otherCropRef   = useRef(null);
+
+  /* image */
+  const [preview,      setPreview]      = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [prediction, setPrediction]     = useState("");
-  const [confidence, setConfidence]     = useState("");
-  const [details, setDetails]           = useState(null);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState("");
-  const [contextualRecs, setContextualRecs] = useState(null);
+  const [dragOver,     setDragOver]     = useState(false);
 
-  const [locationAccepted, setLocationAccepted] = useState(false);
-  const [soilType, setSoilType]                 = useState("");
-  const [weather, setWeather]                   = useState(null);
-  const [otherCrops, setOtherCrops]             = useState([]);
-  const [cropInput, setCropInput]               = useState("");
-  const [dragOver, setDragOver]                 = useState(false);
+  /* crop selection */
+  const [selectedCrop, setSelectedCrop] = useState("Tomato");
 
+  /* other farm crops */
+  const [otherCrops,   setOtherCrops]   = useState([]);
+  const [otherInput,   setOtherInput]   = useState("");
+
+  /* results */
+  const [prediction, setPrediction] = useState("");
+  const [confidence, setConfidence] = useState("");
+  const [recs,       setRecs]       = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+
+  /* location + weather */
+  const [locationState, setLocationState] = useState("idle"); // idle | loading | done | error
+  const [soilType,      setSoilType]      = useState("");
+  const [weather,       setWeather]       = useState(null);
+
+  /* nav */
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  /* ── Auth ── */
   const handleLogout = async () => {
     try { await signOut(auth); navigate("/signin"); }
-    catch (e) { console.error("Logout:", e); }
+    catch (e) { console.error(e); }
   };
 
+  /* ── File handling ── */
   const handleFile = useCallback((file) => {
     if (!file) return;
     setSelectedFile(file);
     setPreview(URL.createObjectURL(file));
-    onImageSelect?.(file);
-  }, [onImageSelect]);
+    setPrediction(""); setConfidence(""); setRecs(null); setError("");
+  }, []);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault(); setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file?.type.startsWith("image/")) handleFile(file);
+    const f = e.dataTransfer.files[0];
+    if (f?.type.startsWith("image/")) handleFile(f);
   }, [handleFile]);
 
+  /* ── Location ── */
   const requestLocation = () => {
-    if (!("geolocation" in navigator)) { alert("Geolocation not supported."); return; }
+    if (!("geolocation" in navigator)) { alert("Geolocation not supported in this browser."); return; }
+    setLocationState("loading");
     navigator.geolocation.getCurrentPosition(
-      ({ coords: { latitude, longitude } }) => {
-        setLocationAccepted(true);
-        fetchFarmData(latitude, longitude);
+      async ({ coords: { latitude, longitude } }) => {
+        setLocationState("done");
+        try {
+          const res  = await fetch(WEATHER_URL(latitude, longitude));
+          const data = await res.json();
+          setSoilType(data.soil_type || "");
+          setWeather(data.weather || null);
+        } catch { /* weather unavailable — not fatal */ }
       },
       (err) => {
-        const msgs = { 1: "Location access denied — enable it in browser settings.", 2: "Location unavailable. Try again.", 3: "Location timed out. Check signal." };
-        alert(msgs[err.code] || "Unknown location error.");
+        setLocationState("error");
+        const msgs = { 1: "Location access denied.", 2: "Location unavailable.", 3: "Location timed out." };
+        alert(msgs[err.code] || "Could not get location.");
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 12000 }
     );
   };
 
-  const fetchFarmData = async (lat, lon) => {
-    try {
-      const res  = await fetch(`http://127.0.0.1:5000/farm/api/farm-data?lat=${lat}&lon=${lon}`);
-      const data = await res.json();
-      setSoilType(data.soil_type);
-      setWeather(data.weather);
-    } catch { console.warn("Farm data unavailable."); }
+  /* ── Other crops (cross-farm) ── */
+  const addOtherCrop = () => {
+    const val = otherInput.trim().toLowerCase();
+    if (!val || otherCrops.includes(val)) return;
+    setOtherCrops(p => [...p, val]);
+    setOtherInput("");
+    otherCropRef.current?.focus();
   };
 
-  const addCrop = () => {
-    const val = cropInput.trim();
-    if (!val || otherCrops.includes(val.toLowerCase())) return;
-    setOtherCrops(p => [...p, val.toLowerCase()]);
-    setCropInput("");
-    cropInputRef.current?.focus();
-  };
+  /* ── Detection ── */
+  const runDetection = async () => {
+    if (!selectedFile) { setError("Please upload or take a photo of your crop leaf first."); return; }
+    setLoading(true); setError("");
+    setPrediction(""); setConfidence(""); setRecs(null);
 
-  const modelPrediction = async () => {
-    if (!selectedFile) { setError("Please upload or capture a crop image first."); return; }
-    setLoading(true); setError(""); setPrediction(""); setConfidence(""); setDetails(null); setContextualRecs(null);
     try {
+      /* 1 — ML prediction */
       const fd = new FormData();
       fd.append("image_upload", selectedFile);
-      const res  = await fetch("http://127.0.0.1:5000/ml/predict", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok) {
-        setPrediction(data.Predicted); setConfidence(data.Confidence); setDetails(data.Details);
-        setContextualRecs(buildContextualRecommendations({ disease: data.Predicted, soilType, weather, otherCrops }));
-      } else {
-        setError(data.Error || "Prediction failed.");
+      fd.append("crop", selectedCrop); // send selected crop to model
+      const predRes  = await fetch(PREDICT_URL, { method: "POST", body: fd });
+      const predData = await predRes.json();
+
+      if (!predRes.ok) {
+        setError(predData.Error || "Detection failed. Please try again.");
+        setLoading(false);
+        return;
       }
-    } catch { setError("Cannot reach server. Make sure Flask is running on port 5000."); }
+
+      // Flask returns: { predicted_disease: "Tomato___Early_blight", confidence: "94.23%" }
+      const rawLabel = predData.predicted_disease;
+      const disease  = normaliseDiseaseLabel(rawLabel); // maps to MongoDB name
+
+      if (!disease) {
+        setError("Prediction returned no disease name. Check the Flask /ml/predict response.");
+        setLoading(false);
+        return;
+      }
+
+      setPrediction(disease);
+      setConfidence(predData.confidence ?? "");
+
+      /* 2 — Recommendations from MongoDB */
+      const cropList = otherCrops.join(",");
+      const recsRes  = await fetch(RECS_URL(disease, selectedCrop, soilType, cropList));
+      if (recsRes.ok) {
+        setRecs(await recsRes.json());
+      } else {
+        setRecs({
+          risk_level: "Low", description: "", symptoms: [],
+          immediate: [], treatment: [], farming_practice: [],
+          other_crops_advice: [], weather_warnings: [], prevention: [],
+        });
+      }
+    } catch {
+      setError("Cannot reach server. Make sure Flask is running on port 5000.");
+    }
+
     setLoading(false);
   };
 
   const handleClear = () => {
-    setSelectedFile(null); setPreview(null); setPrediction(""); setConfidence("");
-    setDetails(null); setError(""); setContextualRecs(null);
+    setSelectedFile(null); setPreview(null);
+    setPrediction(""); setConfidence(""); setRecs(null); setError("");
   };
 
-  return (
-    <div className="ai-page">
+  const displayName  = user?.displayName || user?.email?.split("@")[0] || "Farmer";
+  const avatarLetter = (user?.displayName?.[0] || user?.email?.[0] || "F").toUpperCase();
 
-      {/* Navbar */}
-      <nav className="ai-nav">
-        <div className="ai-nav-brand" onClick={() => navigate("/")}>
-          <div className="ai-nav-logo-ring">
-            <img src="/logo.png" alt="Crop Detect" className="ai-nav-logo" />
+  return (
+    <div className="aim-page">
+
+      {/* ── Navbar ── */}
+      <nav className="aim-nav">
+        <div className="aim-nav-brand" onClick={() => navigate("/")}>
+          <div className="aim-nav-logo-ring">
+            <img src="/logo.png" alt="Crop Detect" className="aim-nav-logo" />
           </div>
-          <span className="ai-nav-wordmark">Crop<span>Detect</span></span>
+          <span className="aim-nav-wordmark">Crop<span>Detect</span></span>
         </div>
-        <div className="ai-nav-right">
-          <div className="ai-nav-menu-wrap">
-            <button className="ai-nav-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
+
+        <div className="aim-nav-right">
+          {user && (
+            <div className="aim-nav-user">
+              <div className="aim-nav-avatar">{avatarLetter}</div>
+              <span className="aim-nav-username">{displayName}</span>
+            </div>
+          )}
+          <div className="aim-nav-menu-wrap">
+            <button className="aim-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
               <span /><span /><span />
             </button>
             {menuOpen && (
-              <div className="ai-dropdown">
-                <button onClick={() => { navigate("/"); setMenuOpen(false); }}><Icon.Home /> Home</button>
-                <button onClick={async () => { await handleLogout(); setMenuOpen(false); }}><Icon.Logout /> Logout</button>
+              <div className="aim-dropdown">
+                <button onClick={() => { navigate("/"); setMenuOpen(false); }}>
+                  <Icons.Home /> Dashboard
+                </button>
+                <button className="aim-dropdown-logout" onClick={handleLogout}>
+                  <Icons.Logout /> Sign Out
+                </button>
               </div>
             )}
           </div>
         </div>
       </nav>
 
-      <main className="ai-main">
+      <main className="aim-main">
 
-        {/* LEFT PANEL */}
-        <div className="ai-panel-left">
+        {/* ══ LEFT PANEL ══ */}
+        <div className="aim-left">
 
-          {/* Location */}
-          {!locationAccepted ? (
-            <div className="ai-location-card">
-              <div className="ai-location-icon"><Icon.Pin /></div>
-              <div className="ai-location-body">
-                <h3>Enable Farm Location</h3>
-                <p>Share your location to fetch live soil data and weather. These power your personalised recommendations.</p>
-                <button className="ai-btn ai-btn--primary" onClick={requestLocation}>
-                  <Icon.Pin /> Share Location
+          {/* Step 1 — Location */}
+          <div className="aim-step-card">
+            <div className="aim-step-num">Step 1</div>
+            <h3 className="aim-step-title">Your Farm Location</h3>
+            <p className="aim-step-desc">
+              Share your location to get live weather and soil data for better advice.
+            </p>
+
+            {locationState === "idle" && (
+              <button className="aim-btn aim-btn--primary aim-btn--full" onClick={requestLocation}>
+                <Icons.Pin /> Share My Location
+              </button>
+            )}
+            {locationState === "loading" && (
+              <div className="aim-location-loading">
+                <div className="aim-spinner" /> Getting your location…
+              </div>
+            )}
+            {locationState === "done" && (
+              <div className="aim-location-done">
+                <div className="aim-weather-row">
+                  <div className="aim-weather-chip">
+                    <span className="aim-weather-val">{soilType || "—"}</span>
+                    <span className="aim-weather-lbl">Soil</span>
+                  </div>
+                  {weather && <>
+                    <div className="aim-weather-chip">
+                      <span className="aim-weather-val">{weather.temperature}°C</span>
+                      <span className="aim-weather-lbl">Temp</span>
+                    </div>
+                    <div className="aim-weather-chip">
+                      <span className="aim-weather-val">{weather.rainfall}mm</span>
+                      <span className="aim-weather-lbl">Rain</span>
+                    </div>
+                    <div className="aim-weather-chip">
+                      <span className="aim-weather-val">{weather.wind_speed}m/s</span>
+                      <span className="aim-weather-lbl">Wind</span>
+                    </div>
+                  </>}
+                </div>
+                <p className="aim-location-ok">✅ Location set — conditions loaded</p>
+              </div>
+            )}
+            {locationState === "error" && (
+              <button className="aim-btn aim-btn--ghost aim-btn--full" onClick={requestLocation}>
+                <Icons.Pin /> Try Again
+              </button>
+            )}
+          </div>
+
+          {/* Step 2 — Crop selection */}
+          <div className="aim-step-card">
+            <div className="aim-step-num">Step 2</div>
+            <h3 className="aim-step-title">Select Your Crop</h3>
+            <p className="aim-step-desc">Choose the crop you want to diagnose.</p>
+
+            <div className="aim-crop-select-row">
+              {SUPPORTED_CROPS.map(crop => (
+                <button
+                  key={crop}
+                  className={`aim-crop-btn ${selectedCrop === crop ? "aim-crop-btn--active" : ""}`}
+                  onClick={() => setSelectedCrop(crop)}
+                >
+                  <span className="aim-crop-emoji">{CROP_EMOJI[crop]}</span>
+                  <span className="aim-crop-label">{crop}</span>
                 </button>
-              </div>
+              ))}
             </div>
-          ) : (
-            <div className="ai-farm-bar">
-              <div className="ai-farm-stat"><span>🌱</span><strong>{soilType || "Loading…"}</strong><em>Soil Type</em></div>
-              {weather && <>
-                <div className="ai-farm-stat"><span>🌡</span><strong>{weather.temperature}°C</strong><em>Temperature</em></div>
-                <div className="ai-farm-stat"><span>🌧</span><strong>{weather.rainfall}mm</strong><em>Rainfall</em></div>
-                <div className="ai-farm-stat"><span>💨</span><strong>{weather.wind_speed}m/s</strong><em>Wind</em></div>
-              </>}
-            </div>
-          )}
+          </div>
 
-          {/* Other crops */}
-          <div className="ai-card ai-crops-card">
-            <div className="ai-card-header">
-              <Icon.Leaf />
-              <div>
-                <h3>Other Farm Crops</h3>
-                <p>Add crops you grow alongside tomatoes for cross-contamination and intercropping advice.</p>
-              </div>
-            </div>
-            <div className="ai-crops-input-row">
+          {/* Step 3 — Other farm crops */}
+          <div className="aim-step-card">
+            <div className="aim-step-num">Step 3</div>
+            <h3 className="aim-step-title">Other Crops on Your Farm</h3>
+            <p className="aim-step-desc">
+              Add nearby crops to see cross-infection risks and intercropping advice.
+            </p>
+            <div className="aim-crops-row">
               <input
-                ref={cropInputRef}
+                ref={otherCropRef}
                 type="text"
-                value={cropInput}
-                onChange={e => setCropInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addCrop()}
-                placeholder="e.g. maize, potato, beans…"
-                className="ai-crops-input"
+                value={otherInput}
+                onChange={e => setOtherInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addOtherCrop()}
+                placeholder="e.g. beans, onions, cassava…"
+                className="aim-crops-input"
               />
-              <button className="ai-crops-add-btn" onClick={addCrop} aria-label="Add crop"><Icon.Plus /></button>
+              <button className="aim-crops-add" onClick={addOtherCrop} aria-label="Add crop">
+                <Icons.Plus />
+              </button>
             </div>
             {otherCrops.length > 0 && (
-              <div className="ai-crops-tags">
+              <div className="aim-tags">
                 {otherCrops.map(crop => (
-                  <span key={crop} className="ai-crop-tag">
+                  <span key={crop} className="aim-tag">
                     {crop}
-                    <button onClick={() => setOtherCrops(p => p.filter(c => c !== crop))} aria-label={`Remove ${crop}`}><Icon.X /></button>
+                    <button
+                      onClick={() => setOtherCrops(p => p.filter(c => c !== crop))}
+                      aria-label={`Remove ${crop}`}
+                    >
+                      <Icons.X />
+                    </button>
                   </span>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Upload */}
-          <div className="ai-card ai-upload-card">
-            <div className="ai-card-header">
-              <Icon.Scan />
-              <div>
-                <h3>Scan a Tomato Leaf</h3>
-                <p>Upload or photograph a diseased leaf. Model is trained on tomato crops only.</p>
-              </div>
-            </div>
+          {/* Step 4 — Upload */}
+          <div className="aim-step-card">
+            <div className="aim-step-num">Step 4</div>
+            <h3 className="aim-step-title">Take or Upload a Leaf Photo</h3>
+            <p className="aim-step-desc">
+              Photograph a diseased {selectedCrop.toLowerCase()} leaf in good natural light.
+            </p>
 
             <div
-              className={`ai-drop-zone ${dragOver ? "ai-drop-zone--over" : ""} ${preview ? "ai-drop-zone--filled" : ""}`}
+              className={`aim-dropzone ${dragOver ? "aim-dropzone--over" : ""} ${preview ? "aim-dropzone--filled" : ""}`}
               onClick={() => !preview && fileInputRef.current.click()}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
+              role="button" tabIndex={0}
+              aria-label="Upload crop image"
             >
               {preview ? (
-                <div className="ai-preview-wrap">
-                  <img src={preview} alt="Leaf preview" className="ai-preview-img" />
-                  <button className="ai-preview-clear" onClick={e => { e.stopPropagation(); handleClear(); }} aria-label="Remove image">
-                    <Icon.X />
+                <div className="aim-preview">
+                  <img src={preview} alt="Leaf preview" />
+                  <button
+                    className="aim-preview-clear"
+                    onClick={e => { e.stopPropagation(); handleClear(); }}
+                    aria-label="Remove image"
+                  >
+                    <Icons.X />
                   </button>
                 </div>
               ) : (
-                <div className="ai-drop-empty">
-                  <div className="ai-drop-icon"><Icon.Upload /></div>
-                  <p>Drag &amp; drop or click to upload</p>
-                  <span>JPG, PNG supported</span>
+                <div className="aim-dropzone-empty">
+                  <div className="aim-drop-icon"><Icons.Upload /></div>
+                  <p>Tap to upload</p>
+                  <span>or drag your photo here</span>
                 </div>
               )}
             </div>
 
-            <div className="ai-upload-btns">
-              <button className="ai-btn ai-btn--secondary" onClick={() => fileInputRef.current.click()}>
-                <Icon.Upload /> Upload
+            <div className="aim-upload-row">
+              <button className="aim-btn aim-btn--secondary" onClick={() => fileInputRef.current.click()}>
+                <Icons.Upload /> Gallery
               </button>
-              <button className="ai-btn ai-btn--secondary" onClick={() => cameraInputRef.current.click()}>
-                <Icon.Camera /> Camera
+              <button className="aim-btn aim-btn--secondary" onClick={() => cameraInputRef.current.click()}>
+                <Icons.Camera /> Camera
               </button>
             </div>
 
             <button
-              className={`ai-btn ai-btn--primary ai-btn--full ${loading ? "ai-btn--loading" : ""}`}
-              onClick={modelPrediction}
+              className={`aim-btn aim-btn--primary aim-btn--full aim-detect-btn ${loading ? "aim-btn--loading" : ""}`}
+              onClick={runDetection}
               disabled={loading || !selectedFile}
             >
               {loading
-                ? <><div className="ai-spinner" />Analysing crop…</>
-                : <><Icon.Scan />Run Disease Detection</>
+                ? <><div className="aim-spinner" /> Analysing your {selectedCrop.toLowerCase()}…</>
+                : <><Icons.Scan /> Detect Disease</>
               }
             </button>
 
             {error && (
-              <div className="ai-error-block">
-                <Icon.Alert />
+              <div className="aim-error">
+                <Icons.Alert />
                 <p>{error}</p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* RIGHT PANEL */}
-        <div className="ai-panel-right">
-          {contextualRecs ? (
+        </div>{/* end left */}
+
+        {/* ══ RIGHT PANEL ══ */}
+        <div className="aim-right">
+          {recs ? (
             <>
-              <ResultTabs
+              <ResultPanel
                 prediction={prediction}
                 confidence={confidence}
-                details={details}
-                recs={contextualRecs}
+                selectedCrop={selectedCrop}
+                recs={recs}
                 weather={weather}
                 soilType={soilType}
               />
-              <button className="ai-btn ai-btn--ghost ai-btn--full ai-clear-btn" onClick={handleClear}>
-                ✕ Clear &amp; Scan Again
+              <button className="aim-btn aim-btn--ghost aim-btn--full aim-clear-btn" onClick={handleClear}>
+                ✕ Clear and Scan Another Leaf
               </button>
             </>
           ) : (
-            <div className="ai-empty-state">
-              <div className="ai-empty-icon">🌿</div>
-              <h3>Context-aware diagnosis will appear here</h3>
-              <p>Your results are analysed against live weather, soil type, and your farm's crop mix — not just the detected disease.</p>
-              <div className="ai-empty-steps">
-                <div className="ai-empty-step"><span>01</span><p>Share location for soil &amp; weather</p></div>
-                <div className="ai-empty-step"><span>02</span><p>Add your other farm crops</p></div>
-                <div className="ai-empty-step"><span>03</span><p>Upload a tomato leaf photo</p></div>
-                <div className="ai-empty-step"><span>04</span><p>Run the detection</p></div>
+            <div className="aim-empty">
+              <div className="aim-empty-icon">🌿</div>
+              <h3>Your result will appear here</h3>
+              <p>
+                Upload a leaf photo and tap <strong>Detect Disease</strong> to get a full
+                diagnosis with treatment advice.
+              </p>
+              <div className="aim-empty-steps">
+                <div className="aim-empty-step"><span>1</span><p>Share location</p></div>
+                <div className="aim-empty-step"><span>2</span><p>Select crop</p></div>
+                <div className="aim-empty-step"><span>3</span><p>Add nearby crops</p></div>
+                <div className="aim-empty-step"><span>4</span><p>Upload &amp; detect</p></div>
               </div>
             </div>
           )}
         </div>
+
       </main>
 
-      <input type="file" accept="image/*" ref={fileInputRef} hidden onChange={e => handleFile(e.target.files[0])} />
-      <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={e => handleFile(e.target.files[0])} />
+      {/* Hidden file inputs */}
+      <input type="file" accept="image/*" ref={fileInputRef} hidden
+        onChange={e => handleFile(e.target.files[0])} />
+      <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden
+        onChange={e => handleFile(e.target.files[0])} />
     </div>
   );
 }
