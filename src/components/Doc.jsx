@@ -1,120 +1,444 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Doc.css";
 
-function Documentation() {
+/* ─── Data ───────────────────────────────────────────────── */
+const CROPS = [
+  {
+    id:    "tomato",
+    emoji: "🍅",
+    label: "Tomato",
+    accent: "#e05a3a",
+    accentMuted: "rgba(224,90,58,0.12)",
+    accentBorder: "rgba(224,90,58,0.28)",
+    classes: [
+      "Bacterial Spot",
+      "Early Blight",
+      "Late Blight",
+      "Leaf Mold",
+      "Septoria Leaf Spot",
+      "Spider Mites (Two-spotted Mite)",
+      "Target Spot",
+      "Yellow Leaf Curl Virus",
+      "Mosaic Virus",
+      "Healthy",
+    ],
+    model: {
+      base:       "MobileNetV2 (transfer learning)",
+      inputSize:  "224 × 224 RGB",
+      optimizer:  "Adam",
+      loss:       "Categorical Crossentropy",
+      classes:    "10 classes",
+      accuracy:   "90 – 97%",
+    },
+    pipeline: [
+      "Upload a clear tomato leaf photograph",
+      "Image is resized to 224 × 224 pixels",
+      "Pixel values normalised to [0, 1]",
+      "MobileNetV2 extracts visual features",
+      "Softmax layer outputs disease probabilities",
+      "Highest-confidence class is returned",
+      "Recommendation engine maps disease → treatment",
+    ],
+    limitations: [
+      "Best accuracy on single, well-lit leaves",
+      "Performance drops in very low light",
+      "Does not yet detect fruit-level disease",
+      "Solanaceous species only (not general plant)",
+    ],
+  },
+  {
+    id:    "maize",
+    emoji: "🌽",
+    label: "Maize",
+    accent: "#d4a843",
+    accentMuted: "rgba(212,168,67,0.12)",
+    accentBorder: "rgba(212,168,67,0.28)",
+    classes: [
+      "Cercospora Leaf Spot (Grey Leaf Spot)",
+      "Common Rust",
+      "Northern Leaf Blight",
+      "Healthy",
+    ],
+    model: {
+      base:       "MobileNetV2 (transfer learning)",
+      inputSize:  "224 × 224 RGB",
+      optimizer:  "Adam",
+      loss:       "Categorical Crossentropy",
+      classes:    "4 classes",
+      accuracy:   "92 – 96%",
+    },
+    pipeline: [
+      "Upload a clear maize leaf photograph",
+      "Image is resized to 224 × 224 pixels",
+      "Pixel values normalised to [0, 1]",
+      "MobileNetV2 extracts visual features",
+      "Softmax layer outputs disease probabilities",
+      "Highest-confidence class is returned",
+      "Recommendation engine maps disease → treatment",
+    ],
+    limitations: [
+      "Leaf must be isolated, not bunched",
+      "Corn smut and stalk rot not yet covered",
+      "Accuracy lower on severely damaged leaves",
+      "Single-leaf input only (no field panoramic)",
+    ],
+  },
+  {
+    id:    "potato",
+    emoji: "🥔",
+    label: "Potato",
+    accent: "#8cc63f",
+    accentMuted: "rgba(140,198,63,0.12)",
+    accentBorder: "rgba(140,198,63,0.28)",
+    classes: [
+      "Early Blight",
+      "Late Blight",
+      "Healthy",
+    ],
+    model: {
+      base:       "MobileNetV2 (transfer learning)",
+      inputSize:  "224 × 224 RGB",
+      optimizer:  "Adam",
+      loss:       "Categorical Crossentropy",
+      classes:    "3 classes",
+      accuracy:   "93 – 98%",
+    },
+    pipeline: [
+      "Upload a clear potato leaf photograph",
+      "Image is resized to 224 × 224 pixels",
+      "Pixel values normalised to [0, 1]",
+      "MobileNetV2 extracts visual features",
+      "Softmax layer outputs disease probabilities",
+      "Highest-confidence class is returned",
+      "Recommendation engine maps disease → treatment",
+    ],
+    limitations: [
+      "Leaf surface must be clearly visible",
+      "Tuber diseases not yet supported",
+      "Accuracy lower on wet or muddy leaves",
+      "Night photography not recommended",
+    ],
+  },
+];
+
+const API_EXAMPLE = `POST /ml/predict
+Content-Type: multipart/form-data
+
+Body fields:
+  image_upload  (file)    — leaf photo
+  crop          (string)  — "Tomato" | "Maize" | "Potato"
+
+─────────────────────────────────────
+Response (200 OK):
+
+{
+  "crop":             "Tomato",
+  "predicted_disease": "Tomato___Early_blight",
+  "confidence":       "94.23%"
+}`;
+
+const RECS_EXAMPLE = `GET /api/recommendations
+  ?disease=Early%20Blight
+  &crop=Tomato
+  &soil=Sandy%20Clay%20Loam
+  &crops=maize%2Cbeans
+
+─────────────────────────────────────
+Response (200 OK):
+
+{
+  "disease":          "Early Blight",
+  "crop":             "tomato",
+  "risk_level":       "High",
+  "description":      "Fungal disease caused by Alternaria solani…",
+  "symptoms":         ["Dark brown spots with yellow halos", …],
+  "immediate":        ["Remove infected leaves now", …],
+  "treatment":        ["Apply copper-based fungicide", …],
+  "farming_practice": "For clay soils, improve drainage…",
+  "prevention":       ["Rotate crops annually", …],
+  "weather_warnings": ["Rain forecast — delay spraying", …],
+  "other_crops_advice": ["Maize is not at risk from Early Blight", …]
+}`;
+
+/* ─── Sub-components ─────────────────────────────────────── */
+function CheckItem({ children }) {
   return (
-    <div className="doc-page">
-      <div className="doc-container">
+    <li className="doc-check-item">
+      <svg className="doc-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <span>{children}</span>
+    </li>
+  );
+}
 
-        <h1>Crop Detect AI Tool Documentation</h1>
+function NumberItem({ num, children }) {
+  return (
+    <li className="doc-num-item">
+      <div className="doc-num-badge">{num}</div>
+      <span>{children}</span>
+    </li>
+  );
+}
 
-        <section>
-          <h2>1. Overview</h2>
-          <p>
-            Crop Detect Crop Detect is a dedicated deep learning model that 
-            can work with images to detect and classify tomato leaf diseases. 
-            The system offers the identification of disease, prediction measure, 
-            and treatment suggestion, depending on the identified crops.
-          </p>
-        </section>
-
-        <section>
-          <h2>2. Supported Tomato Classes</h2>
-          <ul>
-            <li>Tomato - Bacterial Spot</li>
-            <li>Tomato - Early Blight</li>
-            <li>Tomato - Late Blight</li>
-            <li>Tomato - Leaf Mold</li>
-            <li>Tomato - Septoria Leaf Spot</li>
-            <li>Tomato - Spider Mites</li>
-            <li>Tomato - Target Spot</li>
-            <li>Tomato - Yellow Leaf Curl Virus</li>
-            <li>Tomato - Mosaic Virus</li>
-            <li>Tomato - Healthy</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>3. How the Model Works</h2>
-          <ul>
-            <li>User uploads tomato leaf image</li>
-            <li>Image resized to 224x224 pixels</li>
-            <li>Pixel normalization applied</li>
-            <li>Model performs feature extraction</li>
-            <li>Softmax layer outputs disease probability</li>
-            <li>Recommendation engine maps disease to treatment</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>4. Model Architecture</h2>
-          <p>
-            The system uses a Convolutional Neural Network (CNN) built with
-            transfer learning for improved accuracy.
-          </p>
-          <ul>
-            <li>Base Model: MobileNetV2 / ResNet50</li>
-            <li>Input Size: 224x224 RGB</li>
-            <li>Optimizer: Adam</li>
-            <li>Loss Function: Categorical Crossentropy</li>
-            <li>Output: 10 Tomato Classes</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>5. API Integration</h2>
-          <p>Endpoint:</p>
-          <code>POST /predict</code>
-          <p>Request: Multipart form-data (image)</p>
-          <p>Response Example:</p>
-          <pre>
-{`{
-  "classification": "Tomato - Early Blight",
-  "accuracy": "93.4%",
-  "recommendation": "Remove infected leaves and apply fungicide treatment."
-}`}
-          </pre>
-        </section>
-
-        <section>
-          <h2>6. Accuracy & Limitations</h2>
-          <ul>
-            <li>Validation Accuracy: 90-97%</li>
-            <li>Best performance on clear leaf images</li>
-            <li>Performance may reduce in low lighting</li>
-            <li>Does not yet support fruit disease detection</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>7. Dataset Information</h2>
-          <p>
-            The model was trained using a labeled tomato leaf disease dataset
-            containing thousands of annotated images across 10 classes.
-          </p>
-        </section>
-
-        <section>
-          <h2>8. Future Improvements</h2>
-          <ul>
-            <li>Maize and potato disease detection</li>
-            <li>Field-level multi-leaf detection</li>
-            <li>Severity estimation (mild, moderate, severe)</li>
-            <li>Multi-crop expansion (Phase 2) to other crops</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>9. Support</h2>
-          <p>
-            For technical support or research collaboration:
-            support@cropdetect.ai
-          </p>
-        </section>
-
-      </div>
+function ModelSpec({ label, value }) {
+  return (
+    <div className="doc-spec-row">
+      <span className="doc-spec-key">{label}</span>
+      <span className="doc-spec-val">{value}</span>
     </div>
   );
 }
 
-export default Documentation;
+function CropSection({ crop }) {
+  return (
+    <div className="doc-crop-section">
+
+      {/* Disease classes */}
+      <div className="doc-block">
+        <h3 className="doc-block-title" style={{ color: crop.accent }}>
+          Supported Disease Classes
+        </h3>
+        <div className="doc-class-grid">
+          {crop.classes.map((cls, i) => (
+            <div
+              key={cls}
+              className="doc-class-chip"
+              style={{
+                background:   cls === "Healthy" ? "rgba(140,198,63,0.08)" : crop.accentMuted,
+                borderColor:  cls === "Healthy" ? "rgba(140,198,63,0.25)" : crop.accentBorder,
+                color:        cls === "Healthy" ? "#8cc63f" : crop.accent,
+              }}
+            >
+              {cls === "Healthy" ? "✅" : "🔬"} {cls}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Model architecture */}
+      <div className="doc-block">
+        <h3 className="doc-block-title" style={{ color: crop.accent }}>
+          Model Architecture
+        </h3>
+        <div className="doc-spec-table">
+          <ModelSpec label="Base Model"      value={crop.model.base}       />
+          <ModelSpec label="Input Size"      value={crop.model.inputSize}  />
+          <ModelSpec label="Optimizer"       value={crop.model.optimizer}  />
+          <ModelSpec label="Loss Function"   value={crop.model.loss}       />
+          <ModelSpec label="Output Classes"  value={crop.model.classes}    />
+          <ModelSpec label="Validation Acc." value={crop.model.accuracy}   />
+        </div>
+      </div>
+
+      {/* Processing pipeline */}
+      <div className="doc-block">
+        <h3 className="doc-block-title" style={{ color: crop.accent }}>
+          Processing Pipeline
+        </h3>
+        <ol className="doc-num-list">
+          {crop.pipeline.map((step, i) => (
+            <NumberItem key={i} num={i + 1}>{step}</NumberItem>
+          ))}
+        </ol>
+      </div>
+
+      {/* Limitations */}
+      <div className="doc-block">
+        <h3 className="doc-block-title" style={{ color: crop.accent }}>
+          Known Limitations
+        </h3>
+        <ul className="doc-check-list">
+          {crop.limitations.map((l, i) => <CheckItem key={i}>{l}</CheckItem>)}
+        </ul>
+      </div>
+
+    </div>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────── */
+export default function Documentation() {
+  const navigate  = useNavigate();
+  const [activeCrop, setActiveCrop] = useState("tomato");
+  const crop = CROPS.find(c => c.id === activeCrop);
+
+  return (
+    <div className="doc-page">
+
+      {/* ── Navbar ── */}
+      <nav className="doc-nav">
+        <button className="doc-nav-brand" onClick={() => navigate("/")}>
+          <img src="/logo.png" alt="CropDetect" className="doc-nav-logo" />
+          <span className="doc-nav-wordmark">Crop<span>Detect</span></span>
+        </button>
+        <button className="doc-nav-cta" onClick={() => navigate("/ai-model")}>
+          Try the AI Model →
+        </button>
+      </nav>
+
+      <main className="doc-main">
+
+        {/* ── Hero ── */}
+        <header className="doc-hero">
+          <div className="doc-hero-tag">Documentation</div>
+          <h1 className="doc-hero-title">
+            CropDetect AI Model
+          </h1>
+          <p className="doc-hero-desc">
+            Three specialist deep-learning models — one each for tomato, maize, and potato —
+            detecting leaf diseases from a single photograph and delivering context-aware
+            treatment advice for Kenyan smallholder farmers.
+          </p>
+        </header>
+
+        {/* ── Overview cards ── */}
+        <section className="doc-section" aria-labelledby="overview-heading">
+          <h2 id="overview-heading" className="doc-section-title">System Overview</h2>
+          <div className="doc-overview-grid">
+            {[
+              { icon: "🤖", label: "3 ML Models",     desc: "Separate specialist models for tomato, maize, and potato" },
+              { icon: "📸", label: "Photo Input",      desc: "Upload or photograph a single leaf — results in seconds" },
+              { icon: "🌍", label: "Live Context",     desc: "Weather, soil type and neighbouring crops shape every result" },
+              { icon: "💊", label: "Treatment Plans",  desc: "Immediate actions, fungicides, and prevention — in plain language" },
+            ].map(card => (
+              <div key={card.label} className="doc-overview-card">
+                <div className="doc-overview-icon">{card.icon}</div>
+                <div>
+                  <div className="doc-overview-label">{card.label}</div>
+                  <p className="doc-overview-desc">{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Per-crop tabs ── */}
+        <section className="doc-section" aria-labelledby="crops-heading">
+          <h2 id="crops-heading" className="doc-section-title">Crop Models</h2>
+          <p className="doc-section-sub">
+            Each crop runs on its own trained model with dedicated class labels and disease mappings.
+          </p>
+
+          {/* Tab row */}
+          <div className="doc-crop-tabs" role="tablist">
+            {CROPS.map(c => (
+              <button
+                key={c.id}
+                role="tab"
+                aria-selected={activeCrop === c.id}
+                className={`doc-crop-tab ${activeCrop === c.id ? "doc-crop-tab--active" : ""}`}
+                style={activeCrop === c.id ? {
+                  borderColor: c.accent,
+                  color: c.accent,
+                  background: c.accentMuted,
+                } : {}}
+                onClick={() => setActiveCrop(c.id)}
+              >
+                <span className="doc-tab-emoji">{c.emoji}</span>
+                <span>{c.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div role="tabpanel">
+            <CropSection key={activeCrop} crop={crop} />
+          </div>
+        </section>
+
+        {/* ── API reference ── */}
+        <section className="doc-section" aria-labelledby="api-heading">
+          <h2 id="api-heading" className="doc-section-title">API Reference</h2>
+          <p className="doc-section-sub">
+            Two endpoints power the frontend. Both run on the Flask backend at{" "}
+            <code className="doc-inline-code">http://127.0.0.1:5000</code>.
+          </p>
+
+          <div className="doc-api-block">
+            <div className="doc-api-header">
+              <span className="doc-method">POST</span>
+              <span className="doc-endpoint">/ml/predict</span>
+              <span className="doc-api-desc">Disease detection</span>
+            </div>
+            <pre className="doc-pre">{API_EXAMPLE}</pre>
+          </div>
+
+          <div className="doc-api-block">
+            <div className="doc-api-header">
+              <span className="doc-method doc-method--get">GET</span>
+              <span className="doc-endpoint">/api/recommendations</span>
+              <span className="doc-api-desc">Context-aware treatment advice</span>
+            </div>
+            <pre className="doc-pre">{RECS_EXAMPLE}</pre>
+          </div>
+        </section>
+
+        {/* ── Dataset ── */}
+        <section className="doc-section" aria-labelledby="data-heading">
+          <h2 id="data-heading" className="doc-section-title">Training Data</h2>
+          <div className="doc-data-grid">
+            {[
+              { crop: "🍅 Tomato", source: "PlantVillage dataset",    classes: 10, note: "Thousands of annotated leaf images" },
+              { crop: "🌽 Maize",  source: "PlantVillage dataset",    classes: 4,  note: "Field and lab conditions included" },
+              { crop: "🥔 Potato", source: "PlantVillage dataset",    classes: 3,  note: "Highland and lowland varieties" },
+            ].map(row => (
+              <div key={row.crop} className="doc-data-card">
+                <div className="doc-data-crop">{row.crop}</div>
+                <div className="doc-data-source">{row.source}</div>
+                <div className="doc-data-classes">{row.classes} classes</div>
+                <p className="doc-data-note">{row.note}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Roadmap ── */}
+        <section className="doc-section" aria-labelledby="roadmap-heading">
+          <h2 id="roadmap-heading" className="doc-section-title">Roadmap</h2>
+          <div className="doc-roadmap">
+            {[
+              { status: "done",  label: "Tomato disease detection (10 classes)"         },
+              { status: "done",  label: "Maize disease detection (4 classes)"            },
+              { status: "done",  label: "Potato disease detection (3 classes)"           },
+              { status: "done",  label: "Live weather & soil context integration"        },
+              { status: "next",  label: "Severity estimation (mild / moderate / severe)" },
+              { status: "next",  label: "Field-level multi-leaf detection"               },
+              { status: "next",  label: "Beans and cassava disease models"               },
+              { status: "later", label: "SMS-based diagnosis for feature phones"         },
+            ].map((item, i) => (
+              <div key={i} className={`doc-roadmap-item doc-roadmap-item--${item.status}`}>
+                <div className="doc-roadmap-dot" />
+                <span>{item.label}</span>
+                <span className="doc-roadmap-badge">
+                  {item.status === "done"  ? "✅ Live"   : ""}
+                  {item.status === "next"  ? "🔜 Next"  : ""}
+                  {item.status === "later" ? "💡 Planned": ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Support ── */}
+        <section className="doc-section doc-section--last" aria-labelledby="support-heading">
+          <h2 id="support-heading" className="doc-section-title">Support</h2>
+          <div className="doc-support-card">
+            <p>
+              For technical support, bug reports, or research collaboration,
+              reach the CropDetect team at{" "}
+              <a href="mailto:support@cropdetect.ai" className="doc-link">
+                support@cropdetect.ai
+              </a>
+            </p>
+            <button className="doc-cta-btn" onClick={() => navigate("/ai-model")}>
+              Start Diagnosing →
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
+}
