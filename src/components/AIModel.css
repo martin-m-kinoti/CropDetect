@@ -239,6 +239,16 @@
   border-radius: var(--r-sm); padding: 0.5rem 0.75rem;
   min-width: 58px; flex: 1;
 }
+.aim-weather-chip--label {
+  background: rgba(140,198,63,0.06);
+  border-color: rgba(140,198,63,0.2);
+}
+.aim-weather-val--label {
+  text-transform: capitalize;
+  color: var(--sprout);
+  font-size: 0.82rem;
+}
+
 .aim-weather-chip--soil { flex: 2; }
 .aim-weather-val { font-size: 0.82rem; font-weight: 600; color: var(--sprout); }
 .aim-weather-lbl { font-size: 0.64rem; color: var(--txt-muted); margin-top: 0.1rem; text-transform: uppercase; letter-spacing: 0.05em; }

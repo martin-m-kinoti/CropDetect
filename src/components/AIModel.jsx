@@ -5,7 +5,7 @@ import { auth } from "../firebase";
 import "./AIModel.css";
 
 /* ─── API endpoints ─────────────────────────────────────── */
-const API_BASE    = "http://127.0.0.1:5000";
+const API_BASE    = "https://crop-detect-ml.onrender.com";
 const PREDICT_URL = `${API_BASE}/ml/predict`;
 const WEATHER_URL = (lat, lon) => `${API_BASE}/farm/api/farm-data?lat=${lat}&lon=${lon}`;
 const RECS_URL    = (disease, crop, soil, otherCrops) =>
@@ -191,10 +191,11 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
         {tab === "farm" && <>
           {(weather || soilType) && (
             <div className="aim-weather-grid">
-              {weather?.temperature != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.temperature}°C</span><span className="aim-weather-lbl">Temperature</span></div>}
-              {weather?.rainfall    != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.rainfall}mm</span><span className="aim-weather-lbl">Rainfall</span></div>}
-              {weather?.wind_speed  != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.wind_speed}m/s</span><span className="aim-weather-lbl">Wind</span></div>}
-              {weather?.humidity    != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.humidity}%</span><span className="aim-weather-lbl">Humidity</span></div>}
+              {weather?.temperature  != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.temperature}°C</span><span className="aim-weather-lbl">Temperature</span></div>}
+              {weather?.rainfall     != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.rainfall}mm</span><span className="aim-weather-lbl">Rainfall</span></div>}
+              {weather?.wind_speed   != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.wind_speed}m/s</span><span className="aim-weather-lbl">Wind Speed</span></div>}
+              {weather?.cloud_cover  != null && <div className="aim-weather-chip"><span className="aim-weather-val">{weather.cloud_cover}%</span><span className="aim-weather-lbl">Cloud Cover</span></div>}
+              {weather?.weather_label && <div className="aim-weather-chip aim-weather-chip--label"><span className="aim-weather-val aim-weather-val--label">{weather.weather_label}</span><span className="aim-weather-lbl">Condition</span></div>}
               {soilType && <div className="aim-weather-chip aim-weather-chip--soil"><span className="aim-weather-val">{soilType}</span><span className="aim-weather-lbl">Soil Type</span></div>}
             </div>
           )}
@@ -481,6 +482,14 @@ export default function AIModel({ user }) {
                     <div className="aim-weather-chip">
                       <span className="aim-weather-val">{weather.wind_speed}m/s</span>
                       <span className="aim-weather-lbl">Wind</span>
+                    </div>
+                    <div className="aim-weather-chip">
+                      <span className="aim-weather-val">{weather.cloud_cover}%</span>
+                      <span className="aim-weather-lbl">Cloud</span>
+                    </div>
+                    <div className="aim-weather-chip aim-weather-chip--label">
+                      <span className="aim-weather-val aim-weather-val--label">{weather.weather_label}</span>
+                      <span className="aim-weather-lbl">Condition</span>
                     </div>
                   </>}
                 </div>
