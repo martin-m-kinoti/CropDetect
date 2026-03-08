@@ -69,63 +69,89 @@
 .aim-nav-wordmark span { color: var(--sprout); }
 
 .aim-nav-right { display: flex; align-items: center; gap: 0.85rem; }
+/* ── Avatar (matches Dashboard pattern, adapted for dark surface) ── */
+.db-avatar-wrap { position: relative; flex-shrink: 0; }
 
-/* User badge */
-.aim-nav-user { display: flex; align-items: center; gap: 0.5rem; }
-.aim-nav-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
+.db-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(135deg, var(--moss), var(--fern));
-  border: 1.5px solid rgba(140,198,63,0.4);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--ff-display); font-size: 0.82rem; font-weight: 700;
+  border: 2px solid rgba(140,198,63,0.4);
   color: white;
+  font-family: var(--ff-display); font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s ease; outline: none;
 }
-.aim-nav-username {
-  font-size: 0.82rem; font-weight: 500; color: var(--txt-muted);
-  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.db-avatar:hover {
+  border-color: var(--sprout);
+  box-shadow: 0 0 0 3px rgba(140,198,63,0.2);
+  transform: scale(1.05);
 }
-
-/* Hamburger menu */
-.aim-nav-menu-wrap { position: relative; }
-.aim-menu-btn {
-  background: none; border: 1px solid var(--border);
-  border-radius: var(--r-sm); width: 40px; height: 40px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 5px;
-  cursor: pointer; transition: border-color 0.2s, background 0.2s;
-}
-.aim-menu-btn:hover { border-color: var(--border-hi); background: rgba(140,198,63,0.06); }
-.aim-menu-btn span {
-  display: block; width: 16px; height: 1.5px;
-  background: var(--txt); border-radius: 2px;
+.db-avatar--open {
+  border-color: var(--sprout);
+  box-shadow: 0 0 0 3px rgba(140,198,63,0.2);
 }
 
-.aim-dropdown {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  min-width: 170px; background: var(--surface-3);
-  border: 1px solid var(--border); border-radius: var(--r-md);
-  box-shadow: 0 10px 36px rgba(0,0,0,0.55); overflow: hidden; z-index: 300;
-  animation: dropIn 0.15s ease both;
+.db-avatar-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 230px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  overflow: hidden; z-index: 300;
+  animation: avatarDropIn 0.18s ease both;
 }
-@keyframes dropIn {
-  from { opacity: 0; transform: translateY(-5px) scale(0.97); }
+@keyframes avatarDropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: none; }
 }
-.aim-dropdown button {
-  display: flex; align-items: center; gap: 0.6rem;
-  width: 100%; padding: 0.8rem 1rem;
-  background: none; border: none;
+
+.db-avatar-dropdown-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 1rem 1rem 0.85rem;
+  background: var(--surface-4);
   border-bottom: 1px solid var(--border);
-  color: var(--txt); font-family: var(--ff-body);
-  font-size: 0.875rem; font-weight: 500;
-  cursor: pointer; transition: background 0.15s; text-align: left;
 }
-.aim-dropdown button:last-child { border-bottom: none; }
-.aim-dropdown button:hover { background: rgba(140,198,63,0.07); }
-.aim-dropdown button svg { width: 15px; height: 15px; color: var(--txt-muted); }
-.aim-dropdown-logout { color: var(--rust) !important; }
-.aim-dropdown-logout svg { color: var(--rust) !important; }
-.aim-dropdown-logout:hover { background: rgba(196,92,58,0.08) !important; }
+.db-avatar-dropdown-badge {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--moss), var(--fern));
+  color: white; font-family: var(--ff-display);
+  font-size: 0.85rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.db-avatar-dropdown-info {
+  display: flex; flex-direction: column; gap: 0.1rem; min-width: 0;
+}
+.db-avatar-dropdown-name {
+  font-size: 0.84rem; font-weight: 600; color: var(--txt);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.db-avatar-dropdown-email {
+  font-size: 0.72rem; color: var(--txt-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.db-avatar-dropdown-divider { height: 1px; background: var(--border); }
+
+.db-avatar-dropdown-item {
+  display: flex; align-items: center; gap: 0.65rem;
+  width: 100%; padding: 0.75rem 1rem;
+  background: none; border: none;
+  font-family: var(--ff-body); font-size: 0.84rem; font-weight: 500;
+  color: var(--txt); cursor: pointer; text-align: left;
+  transition: background 0.15s;
+}
+.db-avatar-dropdown-item:hover { background: rgba(140,198,63,0.07); }
+.db-avatar-dropdown-item svg { width: 14px; height: 14px; color: var(--txt-muted); flex-shrink: 0; }
+
+.db-avatar-dropdown-item--logout { color: var(--rust); }
+.db-avatar-dropdown-item--logout svg { color: var(--rust); }
+.db-avatar-dropdown-item--logout:hover { background: rgba(196,92,58,0.08); }
+
+
+
+
+/* Hamburger menu */
+
 
 /* ── Main layout ─────────────────────────────────────────── */
 .aim-main {
@@ -513,7 +539,6 @@
 
 @media (max-width: 600px) {
   .aim-nav { padding: 0 1rem; }
-  .aim-nav-username { display: none; }
   .aim-left { padding: 1rem; }
   .aim-right { padding: 1rem; }
   .aim-result-disease { font-size: 1.3rem; }

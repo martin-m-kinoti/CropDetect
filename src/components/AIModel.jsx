@@ -256,13 +256,25 @@ export default function AIModel({ user }) {
   const [weather,       setWeather]       = useState(null);
 
   /* nav */
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRef = useRef(null);
 
   /* ── Auth ── */
   const handleLogout = async () => {
     try { await signOut(auth); navigate("/signin"); }
     catch (e) { console.error(e); }
+    setAvatarOpen(false);
   };
+
+  /* Close avatar dropdown on outside click */
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target))
+        setAvatarOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   /* ── File handling ── */
   const handleFile = useCallback((file) => {
@@ -383,27 +395,47 @@ export default function AIModel({ user }) {
         </div>
 
         <div className="aim-nav-right">
-          {user && (
-            <div className="aim-nav-user">
-              <div className="aim-nav-avatar">{avatarLetter}</div>
-              <span className="aim-nav-username">{displayName}</span>
+          {user ? (
+            <div className="db-avatar-wrap" ref={avatarRef}>
+              <button
+                className={`db-avatar ${avatarOpen ? "db-avatar--open" : ""}`}
+                onClick={() => setAvatarOpen(p => !p)}
+                aria-label="Account menu"
+              >
+                {avatarLetter}
+              </button>
+
+              {avatarOpen && (
+                <div className="db-avatar-dropdown">
+                  <div className="db-avatar-dropdown-header">
+                    <div className="db-avatar-dropdown-badge">{avatarLetter}</div>
+                    <div className="db-avatar-dropdown-info">
+                      <span className="db-avatar-dropdown-name">{displayName}</span>
+                      <span className="db-avatar-dropdown-email">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="db-avatar-dropdown-divider" />
+                  <button
+                    className="db-avatar-dropdown-item"
+                    onClick={() => { navigate("/"); setAvatarOpen(false); }}
+                  >
+                    <Icons.Home /> Dashboard
+                  </button>
+                  <div className="db-avatar-dropdown-divider" />
+                  <button
+                    className="db-avatar-dropdown-item db-avatar-dropdown-item--logout"
+                    onClick={handleLogout}
+                  >
+                    <Icons.Logout /> Sign Out
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          <div className="aim-nav-menu-wrap">
-            <button className="aim-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
-              <span /><span /><span />
+          ) : (
+            <button className="aim-btn aim-btn--primary" onClick={() => navigate("/signin")}>
+              Sign In
             </button>
-            {menuOpen && (
-              <div className="aim-dropdown">
-                <button onClick={() => { navigate("/"); setMenuOpen(false); }}>
-                  <Icons.Home /> Dashboard
-                </button>
-                <button className="aim-dropdown-logout" onClick={handleLogout}>
-                  <Icons.Logout /> Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </nav>
 
