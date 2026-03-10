@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Doc.css";
 
-/* ─── Data ───────────────────────────────────────────────── */
 const CROPS = [
   {
     id:    "tomato",
@@ -161,7 +160,6 @@ Response (200 OK):
   "other_crops_advice": ["Maize is not at risk from Early Blight", …]
 }`;
 
-/* ─── Sub-components ─────────────────────────────────────── */
 function CheckItem({ children }) {
   return (
     <li className="doc-check-item">
@@ -195,7 +193,6 @@ function CropSection({ crop }) {
   return (
     <div className="doc-crop-section">
 
-      {/* Disease classes */}
       <div className="doc-block">
         <h3 className="doc-block-title" style={{ color: crop.accent }}>
           Supported Disease Classes
@@ -217,7 +214,6 @@ function CropSection({ crop }) {
         </div>
       </div>
 
-      {/* Model architecture */}
       <div className="doc-block">
         <h3 className="doc-block-title" style={{ color: crop.accent }}>
           Model Architecture
@@ -232,7 +228,6 @@ function CropSection({ crop }) {
         </div>
       </div>
 
-      {/* Processing pipeline */}
       <div className="doc-block">
         <h3 className="doc-block-title" style={{ color: crop.accent }}>
           Processing Pipeline
@@ -244,7 +239,6 @@ function CropSection({ crop }) {
         </ol>
       </div>
 
-      {/* Limitations */}
       <div className="doc-block">
         <h3 className="doc-block-title" style={{ color: crop.accent }}>
           Known Limitations
@@ -258,7 +252,6 @@ function CropSection({ crop }) {
   );
 }
 
-/* ─── Main component ─────────────────────────────────────── */
 export default function Documentation() {
   const navigate  = useNavigate();
   const [activeCrop, setActiveCrop] = useState("tomato");
@@ -267,7 +260,6 @@ export default function Documentation() {
   return (
     <div className="doc-page">
 
-      {/* ── Navbar ── */}
       <nav className="doc-nav">
         <button className="doc-nav-brand" onClick={() => navigate("/")}>
           <img src="/logo.png" alt="CropDetect" className="doc-nav-logo" />
@@ -280,7 +272,6 @@ export default function Documentation() {
 
       <main className="doc-main">
 
-        {/* ── Hero ── */}
         <header className="doc-hero">
           <div className="doc-hero-tag">Documentation</div>
           <h1 className="doc-hero-title">
@@ -293,7 +284,6 @@ export default function Documentation() {
           </p>
         </header>
 
-        {/* ── Overview cards ── */}
         <section className="doc-section" aria-labelledby="overview-heading">
           <h2 id="overview-heading" className="doc-section-title">System Overview</h2>
           <div className="doc-overview-grid">
@@ -314,14 +304,12 @@ export default function Documentation() {
           </div>
         </section>
 
-        {/* ── Per-crop tabs ── */}
         <section className="doc-section" aria-labelledby="crops-heading">
           <h2 id="crops-heading" className="doc-section-title">Crop Models</h2>
           <p className="doc-section-sub">
             Each crop runs on its own trained model with dedicated class labels and disease mappings.
           </p>
 
-          {/* Tab row */}
           <div className="doc-crop-tabs" role="tablist">
             {CROPS.map(c => (
               <button
@@ -342,13 +330,11 @@ export default function Documentation() {
             ))}
           </div>
 
-          {/* Tab content */}
           <div role="tabpanel">
             <CropSection key={activeCrop} crop={crop} />
           </div>
         </section>
 
-        {/* ── API reference ── */}
         <section className="doc-section" aria-labelledby="api-heading">
           <h2 id="api-heading" className="doc-section-title">API Reference</h2>
           <p className="doc-section-sub">
@@ -375,7 +361,6 @@ export default function Documentation() {
           </div>
         </section>
 
-        {/* ── Dataset ── */}
         <section className="doc-section" aria-labelledby="data-heading">
           <h2 id="data-heading" className="doc-section-title">Training Data</h2>
           <div className="doc-data-grid">
@@ -394,7 +379,6 @@ export default function Documentation() {
           </div>
         </section>
 
-        {/* ── Roadmap ── */}
         <section className="doc-section" aria-labelledby="roadmap-heading">
           <h2 id="roadmap-heading" className="doc-section-title">Roadmap</h2>
           <div className="doc-roadmap">
@@ -421,7 +405,6 @@ export default function Documentation() {
           </div>
         </section>
 
-        {/* ── Support ── */}
         <section className="doc-section doc-section--last" aria-labelledby="support-heading">
           <h2 id="support-heading" className="doc-section-title">Support</h2>
           <div className="doc-support-card">

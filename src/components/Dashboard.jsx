@@ -13,7 +13,6 @@ const CROPS = [
   {
     id: "tomato",
     label: "Tomato",
-    emoji: "🍅",
     accent: "#e05c3a",
     accentRgb: "224,92,58",
     heroImage: "/crop-images/tomatoes/Early Blight.JPG",
@@ -48,7 +47,6 @@ const CROPS = [
   {
     id: "maize",
     label: "Maize",
-    emoji: "🌽",
     accent: "#d4a020",
     accentRgb: "212,160,32",
     heroImage: "/crop-images/maize/Cercospora_leaf_spot Gray_leaf_spot.JPG",
@@ -71,7 +69,6 @@ const CROPS = [
   {
     id: "potato",
     label: "Potato",
-    emoji: "🥔",
     accent: "#8a7650",
     accentRgb: "138,118,80",
     heroImage: "/crop-images/potatoes/Early_blight.JPG",
@@ -343,7 +340,6 @@ export default function Dashboard({ user }) {
                 style={{ "--tab-accent": crop.accent, "--tab-accent-rgb": crop.accentRgb }}
                 onClick={() => selectCrop(crop.id)}
               >
-                <span className="db-crop-tab-emoji">{crop.emoji}</span>
                 {crop.label}
               </button>
             ))}
@@ -351,7 +347,6 @@ export default function Dashboard({ user }) {
 
           <div className="db-hero-ctas">
             <Link to="/ai-model" className="db-btn-primary">
-              <span className="db-btn-icon">🔬</span>
               Try the AI Model
               <ArrowUpRight size={16} />
             </Link>
@@ -392,7 +387,7 @@ export default function Dashboard({ user }) {
                   className="db-hero-scan-badge"
                   style={{ color: activeCrop.accent, borderColor: `rgba(${activeCrop.accentRgb},0.45)` }}
                 >
-                  {activeCrop.emoji} {activeCrop.label}
+                  {activeCrop.label}
                 </div>
                 <div className="db-hero-scan-line" style={{ "--line-color": activeCrop.accent }} />
               </div>
@@ -443,7 +438,6 @@ export default function Dashboard({ user }) {
               >
                 <div className="db-crop-card-bar" />
                 <div className="db-crop-card-top">
-                  <span className="db-crop-card-emoji">{crop.emoji}</span>
                   <span className="db-crop-card-count">{crop.diseases.length} diseases</span>
                 </div>
                 <h3>{crop.label}</h3>
@@ -485,7 +479,7 @@ export default function Dashboard({ user }) {
               style={{ "--pill-accent": crop.accent, "--pill-accent-rgb": crop.accentRgb }}
               onClick={() => selectCrop(crop.id)}
             >
-              {crop.emoji} {crop.label}
+              {crop.label}
             </button>
           ))}
         </div>
@@ -581,7 +575,7 @@ export default function Dashboard({ user }) {
               style={{ "--pill-accent": crop.accent, "--pill-accent-rgb": crop.accentRgb }}
               onClick={() => selectCrop(crop.id)}
             >
-              {crop.emoji} {crop.label}
+              {crop.label}
             </button>
           ))}
         </div>
@@ -609,7 +603,6 @@ export default function Dashboard({ user }) {
             <div className="db-cta-crops">
               {CROPS.map((c, i) => (
                 <span key={c.id} className="db-cta-crop-icon" style={{ animationDelay: `${i * 0.55}s` }}>
-                  {c.emoji}
                 </span>
               ))}
             </div>
@@ -619,7 +612,6 @@ export default function Dashboard({ user }) {
               maize, and potato diseases before they spread.
             </p>
             <Link to="/ai-model" className="db-btn-primary db-btn-primary--light">
-              <span className="db-btn-icon">🔬</span>
               Start Your Free Scan
               <ArrowUpRight size={16} />
             </Link>

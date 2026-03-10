@@ -11,7 +11,6 @@ import {
 
 import { auth, googleProvider } from "../firebase";
 
-/* ── Inline icons ─────────────────────────────────────────── */
 const IconEye = ({ off }) => off ? (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
@@ -62,7 +61,6 @@ export default function Signin() {
 
   const toggleMode = () => { setIsSignUp(p => !p); setError(""); };
 
-  /* ── Google ── */
   const handleGoogleLogin = async () => {
     setLoading(true); setError("");
     try {
@@ -74,7 +72,6 @@ export default function Signin() {
     setLoading(false);
   };
 
-  /* ── Email / password ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -101,39 +98,9 @@ export default function Signin() {
   return (
     <div className="si-page">
 
-      {/* Left panel — branding */}
-      <div className="si-brand">
-        <div className="si-brand-inner">
-          <div className="si-brand-logo">
-            <img src="/logo.png" alt="CropDetect" />
-          </div>
-          <Link to="/" className="si-wordmark">Crop<span>Detect</span></Link>
-          <p className="si-brand-tagline">
-            AI-powered crop disease detection for Kenyan smallholder farmers.
-          </p>
-          <div className="si-brand-features">
-            {[
-              "Instant leaf disease diagnosis",
-              "Live weather & soil advice",
-              "Treatment plans in plain language",
-              "Works on any phone or tablet",
-            ].map((f, i) => (
-              <div key={i} className="si-brand-feature">
-                <div className="si-feature-icon"><IconLeaf /></div>
-                <span>{f}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="si-brand-orb si-brand-orb--1" />
-        <div className="si-brand-orb si-brand-orb--2" />
-      </div>
-
-      {/* Right panel — form */}
       <div className="si-form-panel">
         <div className="si-card">
 
-          {/* Mode toggle pills */}
           <div className="si-mode-toggle">
             <button
               className={`si-mode-btn ${!isSignUp ? "si-mode-btn--active" : ""}`}
@@ -156,7 +123,6 @@ export default function Signin() {
               : "Sign in to your account to continue."}
           </p>
 
-          {/* Error */}
           {error && (
             <div className="si-error">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -166,7 +132,6 @@ export default function Signin() {
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="si-form" noValidate>
 
             {isSignUp && (
@@ -252,10 +217,8 @@ export default function Signin() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="si-divider"><span>or continue with</span></div>
 
-          {/* Google */}
           <button
             type="button"
             className="si-google"
@@ -266,7 +229,6 @@ export default function Signin() {
             <span>Sign in with Google</span>
           </button>
 
-          {/* Footer toggle */}
           <p className="si-footer-toggle">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}
             {" "}
@@ -281,7 +243,6 @@ export default function Signin() {
   );
 }
 
-/* ── Friendly Firebase error messages ─────────────────────── */
 function friendlyError(code) {
   const map = {
     "auth/user-not-found":       "No account found with this email address.",

@@ -4,22 +4,16 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "./AIModel.css";
 
-/* ─── API endpoints ─────────────────────────────────────── */
 const API_BASE    = "https://crop-detect-ml.onrender.com";
 const PREDICT_URL = `${API_BASE}/ml/predict`;
 const WEATHER_URL = (lat, lon) => `${API_BASE}/farm/api/farm-data?lat=${lat}&lon=${lon}`;
 const RECS_URL    = (disease, crop, soil, otherCrops) =>
   `${API_BASE}/api/recommendations?disease=${encodeURIComponent(disease)}&crop=${encodeURIComponent(crop)}&soil=${encodeURIComponent(soil)}&crops=${encodeURIComponent(otherCrops)}`;
 
-/* ─── Supported crops ────────────────────────────────────── */
 const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
 
-/* Model class label -> MongoDB disease name map
- * Keys:   exactly what Flask returns in "predicted_disease"
- * Values: exactly what is stored in MongoDB "disease" field
- */
 const DISEASE_LABEL_MAP = {
-  // Tomato
+  
   "Tomato___Bacterial_spot":         "Bacterial Spot",
   "Tomato___Early_blight":           "Early Blight",
   "Tomato___Late_blight":            "Late Blight",
@@ -30,24 +24,21 @@ const DISEASE_LABEL_MAP = {
   "Tomato___Yellow_Leaf_Curl_Virus": "Yellow Leaf Curl Virus",
   "Tomato___mosaic_virus":           "Mosaic Virus",
   "Tomato___healthy":                "Healthy",
-  // Maize
+  
   "Maize___Cercospora_leaf_spot":    "Cercospora Leaf Spot",
   "Maize___Common_rust":             "Common Rust",
   "Maize___Northern_Leaf_Blight":    "Northern Leaf Blight",
   "Maize___healthy":                 "Healthy Maize",
-  // Potato
+  
   "Potato___Early_blight":           "Potato Early Blight",
   "Potato___Late_blight":            "Potato Late Blight",
   "Potato___healthy":                "Healthy Potato",
 };
 
-/** Maps a raw model class string to the MongoDB disease name.
- *  Falls back to the raw string if no mapping is found. */
 function normaliseDiseaseLabel(raw = "") {
   return DISEASE_LABEL_MAP[raw] ?? raw;
 }
 
-/* ─── Severity colour map ────────────────────────────────── */
 const SEVERITY_COLORS = {
   High:     "#c45c3a",
   Moderate: "#d4a843",
@@ -55,7 +46,6 @@ const SEVERITY_COLORS = {
   Healthy:  "#8cc63f",
 };
 
-/* ─── Inline icons ───────────────────────────────────────── */
 const Icons = {
   Upload: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
   Camera: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
@@ -69,10 +59,8 @@ const Icons = {
   Check:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
 };
 
-/* ─── Crop emoji map ─────────────────────────────────────── */
 const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
 
-/* ─── Confidence ring ────────────────────────────────────── */
 function ConfidenceRing({ value }) {
   const pct  = parseFloat(value) || 0;
   const circ = 106.8;
@@ -94,7 +82,6 @@ function ConfidenceRing({ value }) {
   );
 }
 
-/* ─── Result panel ───────────────────────────────────────── */
 function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soilType }) {
   const [tab, setTab] = useState("diagnosis");
 
@@ -110,7 +97,6 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
   return (
     <div className="aim-result">
 
-      {/* Header */}
       <div className="aim-result-header">
         <div className="aim-result-meta">
           <div className="aim-result-crop-badge">
@@ -128,7 +114,6 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
         <ConfidenceRing value={confidence} />
       </div>
 
-      {/* Tabs */}
       <div className="aim-tabs" role="tablist">
         {TABS.map(t => (
           <button
@@ -141,7 +126,6 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
         ))}
       </div>
 
-      {/* Tab content */}
       <div className="aim-tab-body" role="tabpanel">
 
         {tab === "diagnosis" && <>
@@ -225,49 +209,40 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
   );
 }
 
-/* ─── Main component ─────────────────────────────────────── */
 export default function AIModel({ user }) {
   const navigate       = useNavigate();
   const fileInputRef   = useRef(null);
   const cameraInputRef = useRef(null);
   const otherCropRef   = useRef(null);
 
-  /* image */
   const [preview,      setPreview]      = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragOver,     setDragOver]     = useState(false);
 
-  /* crop selection */
   const [selectedCrop, setSelectedCrop] = useState("Tomato");
 
-  /* other farm crops */
   const [otherCrops,   setOtherCrops]   = useState([]);
   const [otherInput,   setOtherInput]   = useState("");
 
-  /* results */
   const [prediction, setPrediction] = useState("");
   const [confidence, setConfidence] = useState("");
   const [recs,       setRecs]       = useState(null);
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
 
-  /* location + weather */
-  const [locationState, setLocationState] = useState("idle"); // idle | loading | done | error
+  const [locationState, setLocationState] = useState("idle"); 
   const [soilType,      setSoilType]      = useState("");
   const [weather,       setWeather]       = useState(null);
 
-  /* nav */
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef(null);
 
-  /* ── Auth ── */
   const handleLogout = async () => {
     try { await signOut(auth); navigate("/signin"); }
     catch (e) { console.error(e); }
     setAvatarOpen(false);
   };
 
-  /* Close avatar dropdown on outside click */
   React.useEffect(() => {
     const handler = (e) => {
       if (avatarRef.current && !avatarRef.current.contains(e.target))
@@ -277,7 +252,6 @@ export default function AIModel({ user }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ── File handling ── */
   const handleFile = useCallback((file) => {
     if (!file) return;
     setSelectedFile(file);
@@ -291,7 +265,6 @@ export default function AIModel({ user }) {
     if (f?.type.startsWith("image/")) handleFile(f);
   }, [handleFile]);
 
-  /* ── Location ── */
   const requestLocation = () => {
     if (!("geolocation" in navigator)) { alert("Geolocation not supported in this browser."); return; }
     setLocationState("loading");
@@ -303,7 +276,7 @@ export default function AIModel({ user }) {
           const data = await res.json();
           setSoilType(data.soil_type || "");
           setWeather(data.weather || null);
-        } catch { /* weather unavailable — not fatal */ }
+        } catch 
       },
       (err) => {
         setLocationState("error");
@@ -314,7 +287,6 @@ export default function AIModel({ user }) {
     );
   };
 
-  /* ── Other crops (cross-farm) ── */
   const addOtherCrop = () => {
     const val = otherInput.trim().toLowerCase();
     if (!val || otherCrops.includes(val)) return;
@@ -323,70 +295,12 @@ export default function AIModel({ user }) {
     otherCropRef.current?.focus();
   };
 
-  /* ── Detection ── */
   const runDetection = async () => {
     if (!selectedFile) { setError("Please upload or take a photo of your crop leaf first."); return; }
     setLoading(true); setError("");
     setPrediction(""); setConfidence(""); setRecs(null);
 
-    try {
-      /* 1 — ML prediction */
-      const fd = new FormData();
-      fd.append("image_upload", selectedFile);
-      fd.append("crop", selectedCrop); // send selected crop to model
-      const predRes  = await fetch(PREDICT_URL, { method: "POST", body: fd });
-      const predData = await predRes.json();
-
-      if (!predRes.ok) {
-        setError(predData.Error || "Detection failed. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Flask returns: { predicted_disease: "Tomato___Early_blight", confidence: "94.23%" }
-      const rawLabel = predData.predicted_disease;
-      const disease  = normaliseDiseaseLabel(rawLabel); // maps to MongoDB name
-
-      if (!disease) {
-        setError("Prediction returned no disease name. Check the Flask /ml/predict response.");
-        setLoading(false);
-        return;
-      }
-
-      setPrediction(disease);
-      setConfidence(predData.confidence ?? "");
-
-      /* 2 — Recommendations from MongoDB */
-      const cropList = otherCrops.join(",");
-      const recsRes  = await fetch(RECS_URL(disease, selectedCrop, soilType, cropList));
-      if (recsRes.ok) {
-        setRecs(await recsRes.json());
-      } else {
-        setRecs({
-          risk_level: "Low", description: "", symptoms: [],
-          immediate: [], treatment: [], farming_practice: [],
-          other_crops_advice: [], weather_warnings: [], prevention: [],
-        });
-      }
-    } catch {
-      setError("Cannot reach server. Make sure Flask is running on port 5000.");
-    }
-
-    setLoading(false);
-  };
-
-  const handleClear = () => {
-    setSelectedFile(null); setPreview(null);
-    setPrediction(""); setConfidence(""); setRecs(null); setError("");
-  };
-
-  const displayName  = user?.displayName || user?.email?.split("@")[0] || "Farmer";
-  const avatarLetter = (user?.displayName?.[0] || user?.email?.[0] || "F").toUpperCase();
-
-  return (
-    <div className="aim-page">
-
-      {/* ── Navbar ── */}
+    try 
       <nav className="aim-nav">
         <div className="aim-nav-brand" onClick={() => navigate("/")}>
           <div className="aim-nav-logo-ring">
@@ -442,10 +356,8 @@ export default function AIModel({ user }) {
 
       <main className="aim-main">
 
-        {/* ══ LEFT PANEL ══ */}
         <div className="aim-left">
 
-          {/* Step 1 — Location */}
           <div className="aim-step-card">
             <div className="aim-step-num">Step 1</div>
             <h3 className="aim-step-title">Your Farm Location</h3>
@@ -503,7 +415,6 @@ export default function AIModel({ user }) {
             )}
           </div>
 
-          {/* Step 2 — Crop selection */}
           <div className="aim-step-card">
             <div className="aim-step-num">Step 2</div>
             <h3 className="aim-step-title">Select Your Crop</h3>
@@ -523,7 +434,6 @@ export default function AIModel({ user }) {
             </div>
           </div>
 
-          {/* Step 3 — Other farm crops */}
           <div className="aim-step-card">
             <div className="aim-step-num">Step 3</div>
             <h3 className="aim-step-title">Other Crops on Your Farm</h3>
@@ -561,7 +471,6 @@ export default function AIModel({ user }) {
             )}
           </div>
 
-          {/* Step 4 — Upload */}
           <div className="aim-step-card">
             <div className="aim-step-num">Step 4</div>
             <h3 className="aim-step-title">Take or Upload a Leaf Photo</h3>
@@ -626,9 +535,8 @@ export default function AIModel({ user }) {
             )}
           </div>
 
-        </div>{/* end left */}
+        </div>
 
-        {/* ══ RIGHT PANEL ══ */}
         <div className="aim-right">
           {recs ? (
             <>
@@ -664,7 +572,6 @@ export default function AIModel({ user }) {
 
       </main>
 
-      {/* Hidden file inputs */}
       <input type="file" accept="image/*" ref={fileInputRef} hidden
         onChange={e => handleFile(e.target.files[0])} />
       <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden
