@@ -4,7 +4,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "./AIModel.css";
 
-const API_BASE    = "https://crop-detect-ml.onrender.com";
+const API_BASE    =  "http://localhost:5000";
 const PREDICT_URL = `${API_BASE}/ml/predict`;
 const WEATHER_URL = (lat, lon) => `${API_BASE}/farm/api/farm-data?lat=${lat}&lon=${lon}`;
 const RECS_URL    = (disease, crop, soil, otherCrops) =>
@@ -12,8 +12,9 @@ const RECS_URL    = (disease, crop, soil, otherCrops) =>
 
 const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
 
+const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
+
 const DISEASE_LABEL_MAP = {
-  
   "Tomato___Bacterial_spot":         "Bacterial Spot",
   "Tomato___Early_blight":           "Early Blight",
   "Tomato___Late_blight":            "Late Blight",
@@ -24,12 +25,10 @@ const DISEASE_LABEL_MAP = {
   "Tomato___Yellow_Leaf_Curl_Virus": "Yellow Leaf Curl Virus",
   "Tomato___mosaic_virus":           "Mosaic Virus",
   "Tomato___healthy":                "Healthy",
-  
   "Maize___Cercospora_leaf_spot":    "Cercospora Leaf Spot",
   "Maize___Common_rust":             "Common Rust",
   "Maize___Northern_Leaf_Blight":    "Northern Leaf Blight",
   "Maize___healthy":                 "Healthy Maize",
-  
   "Potato___Early_blight":           "Potato Early Blight",
   "Potato___Late_blight":            "Potato Late Blight",
   "Potato___healthy":                "Healthy Potato",
@@ -59,8 +58,6 @@ const Icons = {
   Check:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
 };
 
-const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
-
 function ConfidenceRing({ value }) {
   const pct  = parseFloat(value) || 0;
   const circ = 106.8;
@@ -86,10 +83,10 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
   const [tab, setTab] = useState("diagnosis");
 
   const TABS = [
-    { id: "diagnosis", label: "🔍 Diagnosis"  },
-    { id: "treatment", label: "💊 Treatment"  },
-    { id: "farm",      label: "🌍 Conditions" },
-    { id: "crops",     label: "🌿 Your Crops" },
+    { id: "diagnosis", label: "Diagnosis"  },
+    { id: "treatment", label: "Treatment"  },
+    { id: "farm",      label: "Conditions" },
+    { id: "crops",     label: "Your Crops" },
   ];
 
   const riskColor = SEVERITY_COLORS[recs?.risk_level] || SEVERITY_COLORS.Low;
@@ -149,7 +146,7 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
           )}
           {recs?.immediate?.length > 0 && (
             <div className="aim-info-box aim-info-box--urgent">
-              <h4>⚡ Do These Now</h4>
+              <h4>Do These Now</h4>
               <ul>{recs.immediate.map((a, i) => <li key={i}><Icons.Check />{a}</li>)}</ul>
             </div>
           )}
@@ -230,7 +227,7 @@ export default function AIModel({ user }) {
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
 
-  const [locationState, setLocationState] = useState("idle"); 
+  const [locationState, setLocationState] = useState("idle");
   const [soilType,      setSoilType]      = useState("");
   const [weather,       setWeather]       = useState(null);
 
@@ -276,7 +273,9 @@ export default function AIModel({ user }) {
           const data = await res.json();
           setSoilType(data.soil_type || "");
           setWeather(data.weather || null);
-        } catch 
+        } catch (e) {
+          console.error(e);
+        }
       },
       (err) => {
         setLocationState("error");
@@ -295,12 +294,66 @@ export default function AIModel({ user }) {
     otherCropRef.current?.focus();
   };
 
+  const handleClear = () => {
+    setSelectedFile(null);
+    setPreview(null);
+    setPrediction("");
+    setConfidence("");
+    setRecs(null);
+    setError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
   const runDetection = async () => {
     if (!selectedFile) { setError("Please upload or take a photo of your crop leaf first."); return; }
     setLoading(true); setError("");
     setPrediction(""); setConfidence(""); setRecs(null);
 
-    try 
+    try {
+      const formData = new FormData();
+      formData.append("image_upload", selectedFile);
+      formData.append("crop",         selectedCrop.toLowerCase());
+      formData.append("user_uid",     user?.uid     || "");
+      formData.append("user_email",   user?.email   || "");
+      formData.append("soil_type",    soilType      || "");
+      formData.append("weather",      weather ? JSON.stringify(weather) : "");
+
+      const res = await fetch(PREDICT_URL, { method: "POST", body: formData });
+
+      if (!res.ok) throw new Error("Could not analyze image.");
+      const data = await res.json();
+
+      const rawLabel = data.predicted_disease || data.prediction || data.predicted_class || "Unknown";
+      const conf     = data.confidence || "0%";
+      const disease  = normaliseDiseaseLabel(rawLabel);
+
+      setPrediction(disease);
+      setConfidence(conf);
+
+      const recsRes = await fetch(RECS_URL(disease, selectedCrop, soilType, otherCrops.join(",")));
+      if (recsRes.ok) {
+        setRecs(await recsRes.json());
+      } else {
+        setRecs({
+          risk_level: "Low", description: "", symptoms: [],
+          immediate: [], treatment: [], farming_practice: [],
+          other_crops_advice: [], weather_warnings: [], prevention: [],
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      setError("Analysis failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayName  = user?.displayName || user?.email?.split("@")[0] || "User";
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+
+  return (
+    <div className="aim-page">
       <nav className="aim-nav">
         <div className="aim-nav-brand" onClick={() => navigate("/")}>
           <div className="aim-nav-logo-ring">
@@ -554,7 +607,6 @@ export default function AIModel({ user }) {
             </>
           ) : (
             <div className="aim-empty">
-              <div className="aim-empty-icon">🌿</div>
               <h3>Your result will appear here</h3>
               <p>
                 Upload a leaf photo and tap <strong>Detect Disease</strong> to get a full

@@ -110,7 +110,7 @@ const FEATURES = [
 
 const STEPS = [
   { n: "01", title: "Take a Photo",            text: "Photograph the affected leaves or stems on your crop. Good natural lighting helps accuracy."      },
-  { n: "02", title: "Select Crop & Analyze",   text: "Choose your crop type — tomato, maize, or potato — upload the photo, and our AI processes it."    },
+  { n: "02", title: "Select Crop & Analyze",   text: "Choose your crop type (tomato, maize, or potato) and upload the photo, and our AI processes it."    },
   { n: "03", title: "Get Your Treatment Plan", text: "View your diagnosis, severity rating, and a step-by-step treatment plan tailored to your crop."    },
 ];
 
@@ -539,8 +539,7 @@ export default function Dashboard({ user }) {
           <div className="db-section-label">Why Crop Detect</div>
           <h2 className="db-section-title">Everything a Kenyan farmer needs</h2>
           <p className="db-section-sub">
-            From early detection to treatment — built to protect your tomato, maize,
-            and potato crops before it's too late.
+            From early detection to treatment built to protect your tomato, maize, and potato crops before it's too late.
           </p>
         </Reveal>
         <div className="db-features-grid">

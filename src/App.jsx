@@ -5,11 +5,12 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { useEffect, useState } from "react";
 import Dashboard from "./components/Dashboard";
-import SignUp from "./components/Signup";
 import SignIn from "./components/Signin";
 import AIModel from "./components/AIModel";
 import Documentation from "./components/Doc";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Admin from "./components/Admin";
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -33,19 +34,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard user={user} />} />
 
-        {/* Redirect logged-in users away from SignIn */}
         <Route
           path="/signin"
           element={user ? <Navigate to="/ai-model" /> : <SignIn />}
         />
+        <Route path="/admin" element={<Admin user={user} />} />
 
-        {/* Redirect logged-in users away from SignUp */}
-        <Route
-          path="/signup"
-          element={user ? <Navigate to="/ai-model" /> : <SignUp />}
-        />
-
-        {/* Protected Route */}
         <Route path="/ai-model" element={<ProtectedRoute user={user}><AIModel user={user} /></ProtectedRoute>} />
 
         <Route path="/documentation" element={<Documentation />} />
