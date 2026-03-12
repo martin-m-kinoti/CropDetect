@@ -375,3 +375,31 @@
   .adm-nav-email { display: none; }
   .adm-tabs      { padding: 0 1rem; }
 }
+
+.adm-export-group {
+  display: flex; gap: 0.5rem; align-items: center;
+}
+.adm-export-btn {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.42rem 1rem;
+  background: var(--surface-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--ff-body); font-size: 0.8rem; font-weight: 600;
+  color: var(--txt-muted); cursor: pointer;
+  transition: all 0.2s;
+}
+.adm-export-btn:hover:not(:disabled) {
+  border-color: var(--border-hi);
+  color: var(--txt);
+  background: var(--surface-5);
+}
+.adm-export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.adm-export-btn--xlsx {
+  color: var(--sprout);
+  border-color: rgba(140,198,63,0.2);
+}
+.adm-export-btn--xlsx:hover:not(:disabled) {
+  background: rgba(140,198,63,0.08);
+  border-color: var(--border-hi);
+}

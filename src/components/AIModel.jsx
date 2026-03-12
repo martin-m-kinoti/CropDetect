@@ -313,7 +313,7 @@ export default function AIModel({ user }) {
     try {
       const formData = new FormData();
       formData.append("image_upload", selectedFile);
-      formData.append("crop",         selectedCrop.toLowerCase());
+      formData.append("crop",         selectedCrop);
       formData.append("user_uid",     user?.uid     || "");
       formData.append("user_email",   user?.email   || "");
       formData.append("soil_type",    soilType      || "");

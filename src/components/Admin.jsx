@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 import "./Admin.css";
 
 const API_BASE = "http://127.0.0.1:5000";
 
-const CROP_EMOJI   = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
 const RISK_COLORS  = { High: "#c45c3a", Moderate: "#d4a843", Low: "#62a050", Healthy: "#8cc63f" };
 const CROP_COLORS  = { Tomato: "#e05a3a", Maize: "#d4a843", Potato: "#8cc63f" };
 const ADMIN_EMAILS = ["kinotimartincs095@gmail.com"];
@@ -28,7 +31,7 @@ function BarChart({ data, colorMap }) {
     <div className="adm-bar-chart">
       {Object.entries(data).map(([key, val]) => (
         <div key={key} className="adm-bar-row">
-          <span className="adm-bar-label">{CROP_EMOJI[key] || ""} {key}</span>
+          <span className="adm-bar-label">{key}</span>
           <div className="adm-bar-track">
             <div
               className="adm-bar-fill"
@@ -64,7 +67,7 @@ function AccuracyCard({ crop, stats }) {
         <div className="adm-acc-ring-val">{avg.toFixed(1)}%</div>
       </div>
       <div className="adm-acc-info">
-        <div className="adm-acc-crop">{CROP_EMOJI[crop]} {crop}</div>
+        <div className="adm-acc-crop">{crop}</div>
         <div className="adm-acc-rows">
           <div className="adm-acc-row"><span>Min confidence</span><strong>{stats?.min_confidence ?? "—"}%</strong></div>
           <div className="adm-acc-row"><span>Max confidence</span><strong>{stats?.max_confidence ?? "—"}%</strong></div>
@@ -110,6 +113,8 @@ export default function Admin({ user }) {
   const [usersPage,    setUsersPage]    = useState(1);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
+  const [confHistory,  setConfHistory]  = useState([]);
+  const [exporting,    setExporting]    = useState(false);
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -141,8 +146,91 @@ export default function Admin({ user }) {
       .finally(() => setLoading(false));
   }, [usersPage]);
 
+  const loadConfHistory = useCallback(() => {
+    fetch(`${API_BASE}/api/admin/confidence-history`)
+      .then(r => r.json())
+      .then(d => setConfHistory(d.history || []))
+      .catch(() => {});
+  }, []);
+
+  const exportCSV = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (predCrop) params.set("crop", predCrop);
+      const res  = await fetch(`${API_BASE}/api/admin/predictions/export?${params}`);
+      const data = await res.json();
+      const rows = data.results;
+      if (!rows.length) { alert("No predictions to export."); return; }
+
+      const headers = ["timestamp","user_email","crop","disease","confidence_str","confidence_pct","risk_level","soil_type","raw_label"];
+      const csv = [
+        headers.join(","),
+        ...rows.map(r =>
+          headers.map(h => {
+            const v = r[h] ?? "";
+            return typeof v === "string" && v.includes(",") ? `"${v}"` : v;
+          }).join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `cropdetect_predictions_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert("Export failed."); }
+    finally { setExporting(false); }
+  };
+
+  const exportXLSX = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (predCrop) params.set("crop", predCrop);
+      const res  = await fetch(`${API_BASE}/api/admin/predictions/export?${params}`);
+      const data = await res.json();
+      const rows = data.results;
+      if (!rows.length) { alert("No predictions to export."); return; }
+
+      const headers = ["timestamp","user_email","crop","disease","confidence_str","confidence_pct","risk_level","soil_type","raw_label"];
+      const sheetRows = [headers, ...rows.map(r => headers.map(h => r[h] ?? ""))];
+
+      const colWidths = headers.map((h, i) =>
+        Math.max(h.length, ...sheetRows.slice(1).map(r => String(r[i]).length)) + 2
+      );
+      const colXml = colWidths.map(w => `<col width="${w}"/>`).join("");
+      const rowsXml = sheetRows.map(row =>
+        `<row>${row.map(cell => `<c t="inlineStr"><is><t>${String(cell).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</t></is></c>`).join("")}</row>`
+      ).join("");
+
+      const ws = `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${colXml}</cols><sheetData>${rowsXml}</sheetData></worksheet>`;
+      const wb = `<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Predictions" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+      const rel = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+      const ct  = `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+
+      const { default: JSZip } = await import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm");
+      const zip = new JSZip();
+      zip.file("[Content_Types].xml", ct);
+      zip.file("xl/workbook.xml", wb);
+      zip.file("xl/_rels/workbook.xml.rels", rel);
+      zip.file("xl/worksheets/sheet1.xml", ws);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `cropdetect_predictions_${new Date().toISOString().slice(0,10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); alert("XLSX export failed."); }
+    finally { setExporting(false); }
+  };
+
   useEffect(() => { if (activeTab === "predictions") loadPredictions(); }, [activeTab, loadPredictions]);
   useEffect(() => { if (activeTab === "users")       loadUsers();       }, [activeTab, loadUsers]);
+  useEffect(() => { if (activeTab === "models")      loadConfHistory(); }, [activeTab, loadConfHistory]);
 
   if (!user) {
     return (
@@ -209,10 +297,10 @@ export default function Admin({ user }) {
           <div className="adm-overview">
 
             <div className="adm-stat-grid">
-              <StatCard icon="🔬" label="Total Scans"   value={stats.total_scans}  accent="var(--sprout)" />
+              <StatCard icon="🔍" label="Total Scans"   value={stats.total_scans}  accent="var(--sprout)" />
               <StatCard icon="👥" label="Registered Users" value={stats.total_users} accent="#6ab3d4" />
               <StatCard
-                icon="🍅"
+                icon="🍃"
                 label="Most Scanned Crop"
                 value={Object.entries(stats.crop_counts || {}).sort((a,b) => b[1]-a[1])[0]?.[0] || "—"}
                 accent="#e05a3a"
@@ -257,7 +345,7 @@ export default function Admin({ user }) {
                     {stats.top_diseases.map((d, i) => (
                       <tr key={i}>
                         <td className="adm-td-num">{i + 1}</td>
-                        <td>{CROP_EMOJI[d.crop]} {d.crop}</td>
+                        <td>{d.crop}</td>
                         <td>{d.disease}</td>
                         <td><span className="adm-count-badge">{d.count}</span></td>
                       </tr>
@@ -275,6 +363,22 @@ export default function Admin({ user }) {
 
             <div className="adm-filter-row">
               <span className="adm-total-badge">{predTotal} total</span>
+              <div className="adm-export-group">
+                <button
+                  className="adm-export-btn"
+                  onClick={exportCSV}
+                  disabled={exporting || predictions.length === 0}
+                >
+                  {exporting ? "Exporting…" : "⬇ CSV"}
+                </button>
+                <button
+                  className="adm-export-btn adm-export-btn--xlsx"
+                  onClick={exportXLSX}
+                  disabled={exporting || predictions.length === 0}
+                >
+                  {exporting ? "Exporting…" : "⬇ Excel"}
+                </button>
+              </div>
               <div className="adm-filter-group">
                 <label>Filter by crop</label>
                 <select
@@ -283,9 +387,9 @@ export default function Admin({ user }) {
                   className="adm-select"
                 >
                   <option value="">All crops</option>
-                  <option value="Tomato">🍅 Tomato</option>
-                  <option value="Maize">🌽 Maize</option>
-                  <option value="Potato">🥔 Potato</option>
+                  <option value="Tomato">Tomato</option>
+                  <option value="Maize">Maize</option>
+                  <option value="Potato">Potato</option>
                 </select>
               </div>
             </div>
@@ -316,7 +420,7 @@ export default function Admin({ user }) {
                               : "—"}
                           </td>
                           <td className="adm-td-email">{p.user_email || <span className="adm-anon">anonymous</span>}</td>
-                          <td>{CROP_EMOJI[p.crop]} {p.crop}</td>
+                          <td>{p.crop}</td>
                           <td className="adm-td-disease">{p.disease}</td>
                           <td>
                             <span className="adm-conf-bar">
@@ -418,7 +522,7 @@ export default function Admin({ user }) {
                     <AccuracyCard key={crop} crop={crop} stats={stats.model_accuracy[crop]} />
                   ) : (
                     <div key={crop} className="adm-acc-card adm-acc-card--empty">
-                      <div className="adm-acc-crop">{CROP_EMOJI[crop]} {crop}</div>
+                      <div className="adm-acc-crop">{crop}</div>
                       <p>No scans yet for this crop.</p>
                     </div>
                   )
@@ -432,13 +536,75 @@ export default function Admin({ user }) {
             )}
 
             <div className="adm-chart-card adm-chart-card--full" style={{ marginTop: "1.5rem" }}>
-              <h3 className="adm-chart-title">Static Validation Accuracies (from training)</h3>
+              <h3 className="adm-chart-title">Average Model Confidence Over Time</h3>
+              <p className="adm-models-note" style={{ marginBottom: "1.25rem" }}>
+                Each point is the mean prediction confidence for that crop on that day, based on real user scans.
+              </p>
+              {confHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={confHistory} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "rgba(226,237,224,0.45)", fontSize: 11, fontFamily: "Outfit" }}
+                      tickLine={false}
+                      axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={v => `${v}%`}
+                      tick={{ fill: "rgba(226,237,224,0.45)", fontSize: 11, fontFamily: "Outfit" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={44}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#1e2a21",
+                        border: "1px solid rgba(140,198,63,0.2)",
+                        borderRadius: "10px",
+                        fontFamily: "Outfit",
+                        fontSize: "0.82rem",
+                        color: "#e2ede0",
+                      }}
+                      formatter={(val, name) => [`${val}%`, name]}
+                      labelStyle={{ color: "rgba(226,237,224,0.6)", marginBottom: "4px" }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontFamily: "Outfit", fontSize: "0.82rem", paddingTop: "12px" }}
+                    />
+                    <Line
+                      type="monotone" dataKey="Tomato" name="Tomato"
+                      stroke="#e05a3a" strokeWidth={2.5} dot={{ r: 4, fill: "#e05a3a" }}
+                      activeDot={{ r: 6 }} connectNulls
+                    />
+                    <Line
+                      type="monotone" dataKey="Maize" name="🌽 Maize"
+                      stroke="#d4a843" strokeWidth={2.5} dot={{ r: 4, fill: "#d4a843" }}
+                      activeDot={{ r: 6 }} connectNulls
+                    />
+                    <Line
+                      type="monotone" dataKey="Potato" name="🥔 Potato"
+                      stroke="#8cc63f" strokeWidth={2.5} dot={{ r: 4, fill: "#8cc63f" }}
+                      activeDot={{ r: 6 }} connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="adm-empty" style={{ padding: "2rem 0" }}>
+                  <p>No prediction history yet — run some detections to see the trend.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="adm-chart-card adm-chart-card--full" style={{ marginTop: "1rem" }}>
+              <h3 className="adm-chart-title">Validation Accuracies (from training)</h3>
               <BarChart
                 data={{ Tomato: 94, Maize: 95, Potato: 96 }}
                 colorMap={CROP_COLORS}
               />
               <p className="adm-models-note" style={{ marginTop: "0.75rem" }}>
-                These reflect held-out validation set accuracy. Live confidence averages above reflect real-world field performance.
+                Held-out validation set accuracy from model training. Compare against the live confidence trend above.
               </p>
             </div>
 
