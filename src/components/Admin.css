@@ -83,7 +83,8 @@
 .adm-nav-back:hover { border-color: var(--border-hi); color: var(--txt); }
 
 .adm-tabs {
-  display: flex; gap: 0;
+  display: flex; gap: 20px;
+  justify-content: center;
   border-bottom: 1px solid var(--border);
   padding: 0 2rem;
   background: var(--surface-2);

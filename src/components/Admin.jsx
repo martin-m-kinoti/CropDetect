@@ -274,10 +274,10 @@ export default function Admin({ user }) {
 
       <div className="adm-tabs">
         {[
-          { id: "overview",    label: "📊 Overview"   },
-          { id: "predictions", label: "🔬 Predictions" },
-          { id: "users",       label: "👥 Users"       },
-          { id: "models",      label: "🤖 Models"      },
+          { id: "overview",    label: "Overview"   },
+          { id: "predictions", label: "Predictions" },
+          { id: "users",       label: "Users"       },
+          { id: "models",      label: "Models"      },
         ].map(t => (
           <button
             key={t.id}
@@ -369,14 +369,14 @@ export default function Admin({ user }) {
                   onClick={exportCSV}
                   disabled={exporting || predictions.length === 0}
                 >
-                  {exporting ? "Exporting…" : "⬇ CSV"}
+                  {exporting ? "Exporting…" : "⬆ CSV"}
                 </button>
                 <button
                   className="adm-export-btn adm-export-btn--xlsx"
                   onClick={exportXLSX}
                   disabled={exporting || predictions.length === 0}
                 >
-                  {exporting ? "Exporting…" : "⬇ Excel"}
+                  {exporting ? "Exporting…" : "⬆ Excel"}
                 </button>
               </div>
               <div className="adm-filter-group">
@@ -442,7 +442,6 @@ export default function Admin({ user }) {
               </>
             ) : (
               <div className="adm-empty">
-                <div className="adm-empty-icon">🔬</div>
                 <p>No predictions logged yet.</p>
               </div>
             )}
@@ -579,12 +578,12 @@ export default function Admin({ user }) {
                       activeDot={{ r: 6 }} connectNulls
                     />
                     <Line
-                      type="monotone" dataKey="Maize" name="🌽 Maize"
+                      type="monotone" dataKey="Maize" name="Maize"
                       stroke="#d4a843" strokeWidth={2.5} dot={{ r: 4, fill: "#d4a843" }}
                       activeDot={{ r: 6 }} connectNulls
                     />
                     <Line
-                      type="monotone" dataKey="Potato" name="🥔 Potato"
+                      type="monotone" dataKey="Potato" name="Potato"
                       stroke="#8cc63f" strokeWidth={2.5} dot={{ r: 4, fill: "#8cc63f" }}
                       activeDot={{ r: 6 }} connectNulls
                     />
