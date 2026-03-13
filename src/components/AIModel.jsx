@@ -11,9 +11,6 @@ const RECS_URL    = (disease, crop, soil, otherCrops) =>
   `${API_BASE}/api/recommendations?disease=${encodeURIComponent(disease)}&crop=${encodeURIComponent(crop)}&soil=${encodeURIComponent(soil)}&crops=${encodeURIComponent(otherCrops)}`;
 
 const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
-
-const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
-
 const DISEASE_LABEL_MAP = {
   "Tomato___Bacterial_spot":         "Bacterial Spot",
   "Tomato___Early_blight":           "Early Blight",
@@ -46,18 +43,215 @@ const SEVERITY_COLORS = {
 };
 
 const Icons = {
-  Upload: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
-  Camera: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
-  Scan:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>,
-  Pin:    () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-  Home:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  Logout: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  Plus:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  X:      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Alert:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  Check:  () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  Upload:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
+  Camera:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+  Scan:     () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>,
+  Pin:      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+  Home:     () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Logout:   () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  Plus:     () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  X:        () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Alert:    () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Check:    () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  Download: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
+/* Report generator */
+function generateReport({ prediction, confidence, selectedCrop, recs, weather, soilType, otherCrops, userEmail }) {
+  const now      = new Date();
+  const dateStr  = now.toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const timeStr  = now.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" });
+  const riskColor = SEVERITY_COLORS[recs?.risk_level] || SEVERITY_COLORS.Low;
+  const pct       = parseFloat(confidence) || 0;
+
+  const list = (items = []) =>
+    items.length ? `<ul>${items.map(i => `<li>${i}</li>`).join("")}</ul>` : "<p>—</p>";
+
+  const weatherRows = weather ? [
+    weather.temperature  != null ? `<div class="chip"><strong>${weather.temperature}°C</strong><small>Temperature</small></div>` : "",
+    weather.rainfall     != null ? `<div class="chip"><strong>${weather.rainfall}mm</strong><small>Rainfall</small></div>` : "",
+    weather.wind_speed   != null ? `<div class="chip"><strong>${weather.wind_speed}m/s</strong><small>Wind</small></div>` : "",
+    weather.cloud_cover  != null ? `<div class="chip"><strong>${weather.cloud_cover}%</strong><small>Cloud Cover</small></div>` : "",
+    weather.weather_label        ? `<div class="chip"><strong>${weather.weather_label}</strong><small>Condition</small></div>` : "",
+  ].filter(Boolean).join("") : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CropDetect Report — ${prediction} — ${now.toISOString().slice(0,10)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Outfit',sans-serif;background:#f4f0e8;color:#3d2b1f;line-height:1.6;padding:0}
+  @media print{body{background:#fff}@page{margin:20mm}}
+
+  /* Page */
+  .page{max-width:740px;margin:0 auto;background:white;box-shadow:0 2px 24px rgba(0,0,0,0.12)}
+
+  /* Header */
+  .header{background:#1c3b24;padding:2.5rem 2.5rem 2rem;color:white}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+  .logo-row{display:flex;align-items:center;gap:0.6rem;margin-bottom:1.5rem}
+  .logo-box{width:32px;height:32px;background:rgba(140,198,63,0.2);border:1px solid rgba(140,198,63,0.4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+  .logo-text{font-family:'Lora',serif;font-size:1.1rem;font-weight:700;color:#f7f3ed}
+  .logo-text span{color:#8cc63f}
+  .report-label{font-size:0.65rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(247,243,237,0.5);margin-bottom:0.5rem}
+  .disease-name{font-family:'Lora',serif;font-size:2rem;font-weight:700;color:#f7f3ed;letter-spacing:-0.02em;line-height:1.1;margin-bottom:0.6rem}
+  .meta-row{display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;margin-top:0.5rem}
+  .crop-badge{display:inline-flex;align-items:center;gap:0.3rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);padding:0.28rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:500;color:rgba(247,243,237,0.85)}
+  .risk-badge{display:inline-flex;align-items:center;gap:0.3rem;padding:0.28rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;border:1px solid;background:${riskColor}22;color:${riskColor};border-color:${riskColor}66}
+  .conf-area{display:flex;flex-direction:column;align-items:center;gap:0.4rem;flex-shrink:0}
+  .conf-ring-svg{width:72px;height:72px}
+  .conf-ring-bg{fill:none;stroke:rgba(255,255,255,0.1);stroke-width:3.5}
+  .conf-ring-fill{fill:none;stroke:#8cc63f;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:${pct * 106.8 / 100} 106.8;transform:rotate(-90deg);transform-origin:50% 50%}
+  .conf-label-main{font-size:0.95rem;font-weight:700;fill:#8cc63f;dominant-baseline:middle;text-anchor:middle}
+  .conf-label-sub{font-size:0.55rem;fill:rgba(247,243,237,0.4);dominant-baseline:middle;text-anchor:middle}
+
+  /* Body */
+  .body{padding:2rem 2.5rem}
+  .section{margin-bottom:1.75rem;border:1px solid rgba(61,43,31,0.1);border-radius:12px;overflow:hidden}
+  .section-head{background:#f7f3ed;border-bottom:1px solid rgba(61,43,31,0.08);padding:0.75rem 1.1rem;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#4a7c3f}
+  .section-body{padding:1.1rem 1.1rem 1.25rem;background:white}
+  .section-body p{font-size:0.9rem;color:#3d2b1f;line-height:1.75;font-weight:300}
+  .section-body ul{padding-left:0;list-style:none;display:flex;flex-direction:column;gap:0.45rem}
+  .section-body ul li{font-size:0.88rem;color:#3d2b1f;line-height:1.65;padding-left:1.4rem;position:relative;font-weight:400}
+  .section-body ul li::before{content:"✓";position:absolute;left:0;color:#4a7c3f;font-weight:700;font-size:0.8rem}
+
+  /* Weather chips */
+  .chips{display:flex;flex-wrap:wrap;gap:0.65rem;margin-bottom:1rem}
+  .chip{background:#f7f3ed;border:1px solid rgba(61,43,31,0.1);border-radius:8px;padding:0.6rem 0.9rem;display:flex;flex-direction:column;align-items:center;gap:0.12rem;min-width:80px}
+  .chip strong{font-size:0.95rem;font-weight:600;color:#3d2b1f}
+  .chip small{font-size:0.65rem;color:#6b5c4a;letter-spacing:0.04em}
+
+  /* Alert box */
+  .alert-box{background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-left:3px solid #d4a843;border-radius:8px;padding:0.9rem 1rem;margin-bottom:1rem}
+  .alert-box .alert-title{font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7a5200;margin-bottom:0.4rem}
+  .alert-box p{font-size:0.85rem;color:#5a3e00;line-height:1.6;margin-bottom:0.25rem;font-weight:300}
+
+  /* Other crops */
+  .crop-tags{display:flex;flex-wrap:wrap;gap:0.4rem}
+  .crop-tag{display:inline-block;background:#f0f7e8;border:1px solid rgba(74,124,63,0.25);color:#2d5a38;padding:0.25rem 0.65rem;border-radius:20px;font-size:0.78rem;font-weight:500}
+
+  /* Footer */
+  .footer{border-top:1px solid rgba(61,43,31,0.1);padding:1.25rem 2.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;background:#f7f3ed}
+  .footer-brand{font-family:'Lora',serif;font-size:0.85rem;font-weight:700;color:#1c3b24}
+  .footer-brand span{color:#4a7c3f}
+  .footer-meta{font-size:0.75rem;color:#6b5c4a;text-align:right}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-box">🍃</div>
+      <span class="logo-text">Crop<span>Detect</span></span>
+    </div>
+    <div class="report-label">Crop Disease Detection Report</div>
+    <div class="header-top">
+      <div>
+        <div class="disease-name">${prediction}</div>
+      </div>
+      <div class="conf-area">
+        <svg class="conf-ring-svg" viewBox="0 0 40 40">
+          <circle class="conf-ring-bg" cx="20" cy="20" r="17"/>
+          <circle class="conf-ring-fill" cx="20" cy="20" r="17"/>
+          <text class="conf-label-main" x="20" y="19">${confidence}</text>
+          <text class="conf-label-sub"  x="20" y="26">conf.</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    ${recs?.description ? `
+    <div class="section">
+      <div class="section-head">About This Disease</div>
+      <div class="section-body"><p>${recs.description}</p></div>
+    </div>` : ""}
+
+    ${recs?.weather_warnings?.length ? `
+    <div class="alert-box">
+      <div class="alert-title">⚠ Live Weather Alerts</div>
+      ${recs.weather_warnings.map(w => `<p>${w}</p>`).join("")}
+    </div>` : ""}
+
+    ${recs?.symptoms?.length ? `
+    <div class="section">
+      <div class="section-head">Symptoms to Look For</div>
+      <div class="section-body">${list(recs.symptoms)}</div>
+    </div>` : ""}
+
+    ${recs?.immediate?.length ? `
+    <div class="section">
+      <div class="section-head">Immediate Actions</div>
+      <div class="section-body">${list(recs.immediate)}</div>
+    </div>` : ""}
+
+    ${recs?.treatment?.length ? `
+    <div class="section">
+      <div class="section-head">Treatment Plan</div>
+      <div class="section-body">${list(recs.treatment)}</div>
+    </div>` : ""}
+
+    ${recs?.prevention?.length ? `
+    <div class="section">
+      <div class="section-head">Prevention for Next Season</div>
+      <div class="section-body">${list(recs.prevention)}</div>
+    </div>` : ""}
+
+    ${(weather || soilType) ? `
+    <div class="section">
+      <div class="section-head">Farm Conditions at Scan Time</div>
+      <div class="section-body">
+        <div class="chips">
+          ${soilType ? `<div class="chip"><strong>${soilType}</strong><small>Soil Type</small></div>` : ""}
+          ${weatherRows}
+        </div>
+        ${recs?.farming_practice?.length ? `
+        <p style="font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#4a7c3f;margin-bottom:0.5rem">Farming Advice</p>
+        ${list(recs.farming_practice)}` : ""}
+      </div>
+    </div>` : ""}
+
+    ${otherCrops?.length ? `
+    <div class="section">
+      <div class="section-head">Other Crops on Your Farm</div>
+      <div class="section-body">
+        <div class="crop-tags" style="margin-bottom:${recs?.other_crops_advice?.length ? "0.85rem" : "0"}">
+          ${otherCrops.map(c => `<span class="crop-tag">${c}</span>`).join("")}
+        </div>
+        ${recs?.other_crops_advice?.length ? list(recs.other_crops_advice) : ""}
+      </div>
+    </div>` : ""}
+
+  </div>
+
+  <div class="footer">
+    <span class="footer-brand">Crop<span>Detect</span> · AI-Powered Diagnosis</span>
+    <span class="footer-meta">
+      ${userEmail ? `${userEmail} · ` : ""}${dateStr} · ${timeStr}
+    </span>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const blob     = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url      = URL.createObjectURL(blob);
+  const filename = `CropDetect_${selectedCrop}_${prediction.replace(/\s+/g, "_")}_${now.toISOString().slice(0,10)}.html`;
+  const a        = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ConfidenceRing */
 function ConfidenceRing({ value }) {
   const pct  = parseFloat(value) || 0;
   const circ = 106.8;
@@ -79,7 +273,8 @@ function ConfidenceRing({ value }) {
   );
 }
 
-function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soilType }) {
+/* ResultPanel */
+function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soilType, otherCrops, userEmail }) {
   const [tab, setTab] = useState("diagnosis");
 
   const TABS = [
@@ -91,14 +286,15 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
 
   const riskColor = SEVERITY_COLORS[recs?.risk_level] || SEVERITY_COLORS.Low;
 
+  const handleDownload = () => {
+    generateReport({ prediction, confidence, selectedCrop, recs, weather, soilType, otherCrops, userEmail });
+  };
+
   return (
     <div className="aim-result">
 
       <div className="aim-result-header">
         <div className="aim-result-meta">
-          <div className="aim-result-crop-badge">
-            {CROP_EMOJI[selectedCrop] || "🌱"} {selectedCrop}
-          </div>
           <div
             className="aim-risk-pill"
             style={{ background: `${riskColor}22`, color: riskColor, borderColor: `${riskColor}55` }}
@@ -202,10 +398,20 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
         )}
 
       </div>
+
+      {/* Download button — shown below all tabs */}
+      <div style={{ padding: "0 1.5rem 1.5rem" }}>
+        <button className="aim-download-btn" onClick={handleDownload}>
+          <Icons.Download />
+          Download Report as File
+        </button>
+      </div>
+
     </div>
   );
 }
 
+/* Main component */
 export default function AIModel({ user }) {
   const navigate       = useNavigate();
   const fileInputRef   = useRef(null);
@@ -273,9 +479,7 @@ export default function AIModel({ user }) {
           const data = await res.json();
           setSoilType(data.soil_type || "");
           setWeather(data.weather || null);
-        } catch (e) {
-          console.error(e);
-        }
+        } catch (e) { console.error(e); }
       },
       (err) => {
         setLocationState("error");
@@ -320,7 +524,6 @@ export default function AIModel({ user }) {
       formData.append("weather",      weather ? JSON.stringify(weather) : "");
 
       const res = await fetch(PREDICT_URL, { method: "POST", body: formData });
-
       if (!res.ok) throw new Error("Could not analyze image.");
       const data = await res.json();
 
@@ -417,7 +620,6 @@ export default function AIModel({ user }) {
             <p className="aim-step-desc">
               Share your location to get live weather and soil data for better advice.
             </p>
-
             {locationState === "idle" && (
               <button className="aim-btn aim-btn--primary aim-btn--full" onClick={requestLocation}>
                 <Icons.Pin /> Share My Location
@@ -436,22 +638,10 @@ export default function AIModel({ user }) {
                     <span className="aim-weather-lbl">Soil</span>
                   </div>
                   {weather && <>
-                    <div className="aim-weather-chip">
-                      <span className="aim-weather-val">{weather.temperature}°C</span>
-                      <span className="aim-weather-lbl">Temp</span>
-                    </div>
-                    <div className="aim-weather-chip">
-                      <span className="aim-weather-val">{weather.rainfall}mm</span>
-                      <span className="aim-weather-lbl">Rain</span>
-                    </div>
-                    <div className="aim-weather-chip">
-                      <span className="aim-weather-val">{weather.wind_speed}m/s</span>
-                      <span className="aim-weather-lbl">Wind</span>
-                    </div>
-                    <div className="aim-weather-chip">
-                      <span className="aim-weather-val">{weather.cloud_cover}%</span>
-                      <span className="aim-weather-lbl">Cloud</span>
-                    </div>
+                    <div className="aim-weather-chip"><span className="aim-weather-val">{weather.temperature}°C</span><span className="aim-weather-lbl">Temp</span></div>
+                    <div className="aim-weather-chip"><span className="aim-weather-val">{weather.rainfall}mm</span><span className="aim-weather-lbl">Rain</span></div>
+                    <div className="aim-weather-chip"><span className="aim-weather-val">{weather.wind_speed}m/s</span><span className="aim-weather-lbl">Wind</span></div>
+                    <div className="aim-weather-chip"><span className="aim-weather-val">{weather.cloud_cover}%</span><span className="aim-weather-lbl">Cloud</span></div>
                     <div className="aim-weather-chip aim-weather-chip--label">
                       <span className="aim-weather-val aim-weather-val--label">{weather.weather_label}</span>
                       <span className="aim-weather-lbl">Condition</span>
@@ -472,7 +662,6 @@ export default function AIModel({ user }) {
             <div className="aim-step-num">Step 2</div>
             <h3 className="aim-step-title">Select Your Crop</h3>
             <p className="aim-step-desc">Choose the crop you want to diagnose.</p>
-
             <div className="aim-crop-select-row">
               {SUPPORTED_CROPS.map(crop => (
                 <button
@@ -480,7 +669,6 @@ export default function AIModel({ user }) {
                   className={`aim-crop-btn ${selectedCrop === crop ? "aim-crop-btn--active" : ""}`}
                   onClick={() => setSelectedCrop(crop)}
                 >
-                  <span className="aim-crop-emoji">{CROP_EMOJI[crop]}</span>
                   <span className="aim-crop-label">{crop}</span>
                 </button>
               ))}
@@ -600,6 +788,8 @@ export default function AIModel({ user }) {
                 recs={recs}
                 weather={weather}
                 soilType={soilType}
+                otherCrops={otherCrops}
+                userEmail={user?.email}
               />
               <button className="aim-btn aim-btn--ghost aim-btn--full aim-clear-btn" onClick={handleClear}>
                 ✕ Clear and Scan Another Leaf

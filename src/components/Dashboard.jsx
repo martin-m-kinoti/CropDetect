@@ -9,6 +9,9 @@ import {
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
+/* Admin email allowlist — keep in sync with Admin.jsx & Signin.jsx */
+const ADMIN_EMAILS = ["admin@cropdetect.ai"];
+
 const CROPS = [
   {
     id: "tomato",
@@ -110,7 +113,7 @@ const FEATURES = [
 
 const STEPS = [
   { n: "01", title: "Take a Photo",            text: "Photograph the affected leaves or stems on your crop. Good natural lighting helps accuracy."      },
-  { n: "02", title: "Select Crop & Analyze",   text: "Choose your crop type (tomato, maize, or potato) and upload the photo, and our AI processes it."    },
+  { n: "02", title: "Select Crop & Analyze",   text: "Choose your crop type — tomato, maize, or potato — upload the photo, and our AI processes it."    },
   { n: "03", title: "Get Your Treatment Plan", text: "View your diagnosis, severity rating, and a step-by-step treatment plan tailored to your crop."    },
 ];
 
@@ -164,6 +167,7 @@ function Reveal({ children, delay = 0, className = "" }) {
 }
 
 export default function Dashboard({ user }) {
+  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email));
   const [searchQuery, setSearchQuery]   = useState("");
   const [showAll, setShowAll]           = useState(false);
   const [scrolled, setScrolled]         = useState(false);
@@ -240,9 +244,15 @@ export default function Dashboard({ user }) {
           {!user && (
             <Link to="/signin" className="db-nav-signin">Sign In</Link>
           )}
-          <Link to="/ai-model" className="db-nav-cta">
-            Try AI Model <ArrowUpRight size={14} />
-          </Link>
+          {isAdmin ? (
+            <Link to="/admin" className="db-nav-cta db-nav-cta--admin">
+              Admin
+            </Link>
+          ) : (
+            <Link to="/ai-model" className="db-nav-cta">
+              Try AI Model <ArrowUpRight size={14} />
+            </Link>
+          )}
         </div>
 
         <div className="db-nav-right">
@@ -288,16 +298,28 @@ export default function Dashboard({ user }) {
                     <div className="db-avatar-dropdown-info">
                       <span className="db-avatar-dropdown-name">{displayName}</span>
                       <span className="db-avatar-dropdown-email">{user.email}</span>
+                      {isAdmin && (
+                        <span className="db-avatar-dropdown-role">Admin</span>
+                      )}
                     </div>
                   </div>
                   <div className="db-avatar-dropdown-divider" />
-                  <button
-                    className="db-avatar-dropdown-item"
-                    onClick={() => { navigate("/ai-model"); setAvatarOpen(false); }}
-                  >
-                    <User size={14} />
-                    My Scans
-                  </button>
+                  {isAdmin ? (
+                    <button
+                      className="db-avatar-dropdown-item db-avatar-dropdown-item--admin"
+                      onClick={() => { navigate("/admin"); setAvatarOpen(false); }}
+                    >
+                      Admin Dashboard
+                    </button>
+                  ) : (
+                    <button
+                      className="db-avatar-dropdown-item"
+                      onClick={() => { navigate("/ai-model"); setAvatarOpen(false); }}
+                    >
+                      <User size={14} />
+                      My Scans
+                    </button>
+                  )}
                   <div className="db-avatar-dropdown-divider" />
                   <button className="db-avatar-dropdown-item db-avatar-dropdown-item--logout" onClick={handleLogout}>
                     <LogOut size={14} />
@@ -539,7 +561,8 @@ export default function Dashboard({ user }) {
           <div className="db-section-label">Why Crop Detect</div>
           <h2 className="db-section-title">Everything a Kenyan farmer needs</h2>
           <p className="db-section-sub">
-            From early detection to treatment built to protect your tomato, maize, and potato crops before it's too late.
+            From early detection to treatment — built to protect your tomato, maize,
+            and potato crops before it's too late.
           </p>
         </Reveal>
         <div className="db-features-grid">
@@ -654,6 +677,9 @@ export default function Dashboard({ user }) {
             <Link to="/documentation">Documentation</Link>
             {!user && (
               <Link to="/signin" className="db-footer-nav-signin">Sign In</Link>
+            )}
+            {isAdmin && (
+              <Link to="/admin" className="db-footer-nav-admin">Admin</Link>
             )}
           </div>
         </div>

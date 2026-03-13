@@ -5,7 +5,6 @@ import "./Doc.css";
 const CROPS = [
   {
     id:    "tomato",
-    emoji: "🍅",
     label: "Tomato",
     accent: "#e05a3a",
     accentMuted: "rgba(224,90,58,0.12)",
@@ -48,7 +47,6 @@ const CROPS = [
   },
   {
     id:    "maize",
-    emoji: "🌽",
     label: "Maize",
     accent: "#d4a843",
     accentMuted: "rgba(212,168,67,0.12)",
@@ -85,7 +83,6 @@ const CROPS = [
   },
   {
     id:    "potato",
-    emoji: "🥔",
     label: "Potato",
     accent: "#8cc63f",
     accentMuted: "rgba(140,198,63,0.12)",
@@ -208,7 +205,7 @@ function CropSection({ crop }) {
                 color:        cls === "Healthy" ? "#8cc63f" : crop.accent,
               }}
             >
-              {cls === "Healthy" ? "✅" : "🔬"} {cls}
+              {cls}
             </div>
           ))}
         </div>
@@ -288,10 +285,10 @@ export default function Documentation() {
           <h2 id="overview-heading" className="doc-section-title">System Overview</h2>
           <div className="doc-overview-grid">
             {[
-              { icon: "🤖", label: "3 ML Models",     desc: "Separate specialist models for tomato, maize, and potato" },
-              { icon: "📸", label: "Photo Input",      desc: "Upload or photograph a single leaf — results in seconds" },
-              { icon: "🌍", label: "Live Context",     desc: "Weather, soil type and neighbouring crops shape every result" },
-              { icon: "💊", label: "Treatment Plans",  desc: "Immediate actions, fungicides, and prevention — in plain language" },
+              { label: "3 ML Models",     desc: "Separate specialist models for tomato, maize, and potato" },
+              { label: "Photo Input",      desc: "Upload or photograph a single leaf — results in seconds" },
+              { label: "Live Context",     desc: "Weather, soil type and neighbouring crops shape every result" },
+              { label: "Treatment Plans",  desc: "Immediate actions, fungicides, and prevention — in plain language" },
             ].map(card => (
               <div key={card.label} className="doc-overview-card">
                 <div className="doc-overview-icon">{card.icon}</div>
@@ -324,7 +321,6 @@ export default function Documentation() {
                 } : {}}
                 onClick={() => setActiveCrop(c.id)}
               >
-                <span className="doc-tab-emoji">{c.emoji}</span>
                 <span>{c.label}</span>
               </button>
             ))}
@@ -365,9 +361,9 @@ export default function Documentation() {
           <h2 id="data-heading" className="doc-section-title">Training Data</h2>
           <div className="doc-data-grid">
             {[
-              { crop: "🍅 Tomato", source: "PlantVillage dataset",    classes: 10, note: "Thousands of annotated leaf images" },
-              { crop: "🌽 Maize",  source: "PlantVillage dataset",    classes: 4,  note: "Field and lab conditions included" },
-              { crop: "🥔 Potato", source: "PlantVillage dataset",    classes: 3,  note: "Highland and lowland varieties" },
+              { crop: "Tomato", source: "PlantVillage dataset",    classes: 10, note: "Thousands of annotated leaf images" },
+              { crop: "Maize",  source: "PlantVillage dataset",    classes: 4,  note: "Field and lab conditions included" },
+              { crop: "Potato", source: "PlantVillage dataset",    classes: 3,  note: "Highland and lowland varieties" },
             ].map(row => (
               <div key={row.crop} className="doc-data-card">
                 <div className="doc-data-crop">{row.crop}</div>

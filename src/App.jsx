@@ -36,7 +36,7 @@ function App() {
 
         <Route
           path="/signin"
-          element={user ? <Navigate to="/ai-model" /> : <SignIn />}
+          element={user ? <Navigate to="/" /> : <SignIn />}
         />
         <Route path="/admin" element={<Admin user={user} />} />
 
