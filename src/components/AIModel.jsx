@@ -173,11 +173,6 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
       <div class="section-body"><p>${recs.description}</p></div>
     </div>` : ""}
 
-    ${recs?.weather_warnings?.length ? `
-    <div class="alert-box">
-      <div class="alert-title">⚠ Live Weather Alerts</div>
-      ${recs.weather_warnings.map(w => `<p>${w}</p>`).join("")}
-    </div>` : ""}
 
     ${recs?.symptoms?.length ? `
     <div class="section">
@@ -322,12 +317,6 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
       <div className="aim-tab-body" role="tabpanel">
 
         {tab === "diagnosis" && <>
-          {recs?.weather_warnings?.length > 0 && (
-            <div className="aim-alert-box">
-              <div className="aim-alert-title"><Icons.Alert /> Live Weather Alerts</div>
-              {recs.weather_warnings.map((w, i) => <p key={i}>{w}</p>)}
-            </div>
-          )}
           {recs?.description && (
             <div className="aim-info-box">
               <h4>About This Disease</h4>
