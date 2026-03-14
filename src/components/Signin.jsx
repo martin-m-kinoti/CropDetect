@@ -36,12 +36,6 @@ const IconGoogle = () => (
   </svg>
 );
 
-const IconShield = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-);
-
 /* Error messages  */
 function friendlyError(code) {
   const map = {
@@ -174,7 +168,6 @@ export default function Signin() {
               className={`si-mode-btn si-mode-btn--admin-tab ${tab === "admin" ? "si-mode-btn--admin-tab-active" : ""}`}
               onClick={() => switchTab("admin")}
             >
-              <span className="si-tab-shield"><IconShield /></span>
               Admin
             </button>
           </div>
@@ -193,7 +186,6 @@ export default function Signin() {
           {/* Admin trust badge */}
           {isAdmin && (
             <div className="si-admin-badge">
-              <IconShield />
               <span>Access is restricted to authorised admin accounts only.</span>
             </div>
           )}
@@ -258,7 +250,7 @@ export default function Signin() {
               >
                 {loading
                   ? <><span className="si-spinner si-spinner--light" /> Verifying…</>
-                  : <><IconShield /> Access Admin Dashboard</>
+                  : <>Sign In</>
                 }
               </button>
             </form>

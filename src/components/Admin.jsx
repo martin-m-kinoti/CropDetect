@@ -207,7 +207,7 @@ export default function Admin({ user }) {
             <div className="adm-nav-avatar">{avatarLetter}</div>
             <span className="adm-nav-email">{user.email}</span>
           </div>
-          <button className="adm-nav-back" onClick={() => navigate("/")}>← Home</button>
+          <button className="adm-nav-back" onClick={() => navigate("/")}>← Dashboard</button>
           <button className="adm-nav-signout" onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>

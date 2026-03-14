@@ -397,11 +397,6 @@
   color: #f59e0b;
   border: 1px solid rgba(245,158,11,0.3);
 }
-.si-tab-shield {
-  display: flex;
-  align-items: center;
-  opacity: 0.85;
-}
 
 /* Admin trust badge */
 .si-admin-badge {
