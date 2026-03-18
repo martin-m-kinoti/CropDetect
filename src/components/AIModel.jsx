@@ -11,6 +11,8 @@ const RECS_URL    = (disease, crop, soil, otherCrops) =>
   `${API_BASE}/api/recommendations?disease=${encodeURIComponent(disease)}&crop=${encodeURIComponent(crop)}&soil=${encodeURIComponent(soil)}&crops=${encodeURIComponent(otherCrops)}`;
 
 const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
+const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
+
 const DISEASE_LABEL_MAP = {
   "Tomato___Bacterial_spot":         "Bacterial Spot",
   "Tomato___Early_blight":           "Early Blight",
@@ -56,7 +58,10 @@ const Icons = {
   Download: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-/* Report generator */
+/* ── Report generator ─────────────────────────────────────────────────────────
+ * Builds a self-contained HTML file with inline styles and triggers a browser
+ * download. No extra libraries — works offline once saved.
+ * ─────────────────────────────────────────────────────────────────────────── */
 function generateReport({ prediction, confidence, selectedCrop, recs, weather, soilType, otherCrops, userEmail }) {
   const now      = new Date();
   const dateStr  = now.toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -85,7 +90,17 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
   @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Outfit',sans-serif;background:#f4f0e8;color:#3d2b1f;line-height:1.6;padding:0}
-  @media print{body{background:#fff}@page{margin:20mm}}
+  @media print {
+    body { background: #fff; }
+    @page { margin: 15mm 18mm; size: A4; }
+    .page { max-width: 100%; box-shadow: none; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section { break-inside: avoid; }
+    .alert-box { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .chips { break-inside: avoid; }
+    .footer { border-top: 1px solid #ddd; margin-top: 1rem; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .conf-ring-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
 
   /* Page */
   .page{max-width:740px;margin:0 auto;background:white;box-shadow:0 2px 24px rgba(0,0,0,0.12)}
@@ -146,13 +161,17 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
 
   <div class="header">
     <div class="logo-row">
-      <div class="logo-box">🍃</div>
+      <div class="logo-box">🌿</div>
       <span class="logo-text">Crop<span>Detect</span></span>
     </div>
     <div class="report-label">Crop Disease Detection Report</div>
     <div class="header-top">
       <div>
         <div class="disease-name">${prediction}</div>
+        <div class="meta-row">
+          <span class="crop-badge">${CROP_EMOJI[selectedCrop] || "🌱"} ${selectedCrop}</span>
+          <span class="risk-badge">${recs?.risk_level || "Low"} Risk</span>
+        </div>
       </div>
       <div class="conf-area">
         <svg class="conf-ring-svg" viewBox="0 0 40 40">
@@ -172,7 +191,6 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
       <div class="section-head">About This Disease</div>
       <div class="section-body"><p>${recs.description}</p></div>
     </div>` : ""}
-
 
     ${recs?.symptoms?.length ? `
     <div class="section">
@@ -223,6 +241,34 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
       </div>
     </div>` : ""}
 
+    ${recs?.next_season_crops?.length ? `
+    <div class="section">
+      <div class="section-head">Next Season Crop Suggestions</div>
+      <div class="section-body">
+        <p style="font-size:0.82rem;color:#6b5c4a;margin-bottom:1rem;font-weight:300">
+          Based on your ${soilType || "soil"} conditions. Rotating these crops also helps break the ${prediction} disease cycle.
+        </p>
+        ${recs.next_season_crops.map((c, i) => `
+        <div style="display:flex;gap:1rem;margin-bottom:1.1rem;padding-bottom:1.1rem;border-bottom:1px solid rgba(61,43,31,0.07)">
+          <div style="flex-shrink:0;width:28px;height:28px;background:#f0f7e8;border:1px solid rgba(74,124,63,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-size:0.75rem;font-weight:700;color:#2d5a38">${i+1}</div>
+          <div style="flex:1">
+            <div style="font-family:'Lora',serif;font-size:1rem;font-weight:700;color:#1c3b24;margin-bottom:0.3rem">${c.crop}</div>
+            <p style="font-size:0.85rem;color:#3d2b1f;margin-bottom:0.5rem;font-weight:300">${c.reason}</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem">
+              <div style="background:#f7f3ed;border-radius:6px;padding:0.5rem 0.65rem">
+                <div style="font-size:0.63rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#4a7c3f;margin-bottom:0.2rem">Benefit</div>
+                <div style="font-size:0.78rem;color:#3d2b1f;font-weight:400">${c.benefit}</div>
+              </div>
+              <div style="background:#f7f3ed;border-radius:6px;padding:0.5rem 0.65rem">
+                <div style="font-size:0.63rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#4a7c3f;margin-bottom:0.2rem">Tip</div>
+                <div style="font-size:0.78rem;color:#3d2b1f;font-weight:400">${c.tip}</div>
+              </div>
+            </div>
+          </div>
+        </div>`).join("")}
+      </div>
+    </div>` : ""}
+
   </div>
 
   <div class="footer">
@@ -233,20 +279,43 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
   </div>
 
 </div>
+<script>
+  /* Auto-open print dialog once fonts have loaded */
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { window.print(); });
+  } else {
+    window.onload = function() { setTimeout(function() { window.print(); }, 400); };
+  }
+</script>
 </body>
 </html>`;
 
+  /* Open the report in a new tab — the page's onload script triggers
+     the print dialog automatically. The user picks "Save as PDF" in
+     the browser's native print UI, which works on every platform
+     (desktop and mobile) without any extra libraries.           */
   const blob     = new Blob([html], { type: "text/html;charset=utf-8" });
   const url      = URL.createObjectURL(blob);
-  const filename = `CropDetect_${selectedCrop}_${prediction.replace(/\s+/g, "_")}_${now.toISOString().slice(0,10)}.html`;
-  const a        = Object.assign(document.createElement("a"), { href: url, download: filename });
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const tab      = window.open(url, "_blank");
+
+  /* Revoke the object URL after a generous delay so the new tab
+     has finished loading the blob before the reference is freed. */
+  if (tab) {
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  } else {
+    /* Popup was blocked — fall back to a direct download link     */
+    const a = Object.assign(document.createElement("a"), {
+      href:     url,
+      download: `CropDetect_${selectedCrop}_${prediction.replace(/\s+/g, "_")}_${now.toISOString().slice(0,10)}.pdf`,
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5_000);
+  }
 }
 
-/* ConfidenceRing */
+/* ── ConfidenceRing ── */
 function ConfidenceRing({ value }) {
   const pct  = parseFloat(value) || 0;
   const circ = 106.8;
@@ -268,15 +337,16 @@ function ConfidenceRing({ value }) {
   );
 }
 
-/* ResultPanel */
+/* ── ResultPanel ── */
 function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soilType, otherCrops, userEmail }) {
   const [tab, setTab] = useState("diagnosis");
 
   const TABS = [
-    { id: "diagnosis", label: "Diagnosis"  },
-    { id: "treatment", label: "Treatment"  },
-    { id: "farm",      label: "Conditions" },
-    { id: "crops",     label: "Your Crops" },
+    { id: "diagnosis",   label: "Diagnosis"    },
+    { id: "treatment",   label: "Treatment"    },
+    { id: "farm",        label: "Conditions"   },
+    { id: "crops",       label: "Your Crops"   },
+    { id: "nextseason",  label: "Next Season"  },
   ];
 
   const riskColor = SEVERITY_COLORS[recs?.risk_level] || SEVERITY_COLORS.Low;
@@ -290,6 +360,9 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
 
       <div className="aim-result-header">
         <div className="aim-result-meta">
+          <div className="aim-result-crop-badge">
+            {CROP_EMOJI[selectedCrop] || "🌱"} {selectedCrop}
+          </div>
           <div
             className="aim-risk-pill"
             style={{ background: `${riskColor}22`, color: riskColor, borderColor: `${riskColor}55` }}
@@ -386,9 +459,52 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
           </div>
         )}
 
+        {tab === "nextseason" && (
+          <div className="aim-nextseason">
+            <div className="aim-info-box aim-info-box--season-intro">
+              <h4>Next Season Crop Suggestions</h4>
+              <p className="aim-sub-note">
+                Based on your {soilType ? <strong>{soilType} soil</strong> : "soil conditions"} in this region.
+                Rotating crops also helps break the {prediction} disease cycle.
+              </p>
+            </div>
+            {recs?.next_season_crops?.length > 0 ? (
+              <div className="aim-season-cards">
+                {recs.next_season_crops.map((c, i) => (
+                  <div key={i} className="aim-season-card">
+                    <div className="aim-season-card-num">{String(i + 1).padStart(2, "0")}</div>
+                    <div className="aim-season-card-body">
+                      <div className="aim-season-card-crop">{c.crop}</div>
+                      <p className="aim-season-card-reason">{c.reason}</p>
+                      <div className="aim-season-card-meta">
+                        <div className="aim-season-meta-row">
+                          <span className="aim-season-meta-label">Benefit</span>
+                          <span className="aim-season-meta-val">{c.benefit}</span>
+                        </div>
+                        <div className="aim-season-meta-row">
+                          <span className="aim-season-meta-label">Tip</span>
+                          <span className="aim-season-meta-val">{c.tip}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="aim-info-box">
+                <p>
+                  {soilType
+                    ? `Share your location above to get next-season crop suggestions for ${soilType} soil.`
+                    : "Share your location above to get personalised next-season crop suggestions based on your soil type."}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {/* Download button — shown below all tabs */}
+      {/* ── Download button — shown below all tabs ── */}
       <div style={{ padding: "0 1.5rem 1.5rem" }}>
         <button className="aim-download-btn" onClick={handleDownload}>
           <Icons.Download />
@@ -400,7 +516,7 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
   );
 }
 
-/* Main component */
+/* ── Main component ── */
 export default function AIModel({ user }) {
   const navigate       = useNavigate();
   const fileInputRef   = useRef(null);
@@ -530,7 +646,8 @@ export default function AIModel({ user }) {
         setRecs({
           risk_level: "Low", description: "", symptoms: [],
           immediate: [], treatment: [], farming_practice: [],
-          other_crops_advice: [], weather_warnings: [], prevention: [],
+          other_crops_advice: [], prevention: [],
+          next_season_crops: [],
         });
       }
     } catch (e) {
