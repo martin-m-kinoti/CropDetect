@@ -525,6 +525,69 @@
   padding: 1.5rem;
 }
 
+/*Location feature*/
+.adm-diseasemap { display: flex; 
+  flex-direction: column; 
+  gap: 1.5rem; 
+}
+
+.adm-diseasemap-header {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start; 
+  gap: 1rem; 
+  flex-wrap: wrap;
+}
+
+.adm-leaflet-map {
+  width: 100%; 
+  height: 520px;
+  border-radius: 12px; 
+  overflow: hidden;
+  border: 1px solid var(--adm-border);
+}
+
+.adm-refresh-btn {
+  padding: 0.5rem 1.1rem; 
+  border-radius: 8px;
+  background: rgba(140,198,63,0.1); 
+  border: 1px solid rgba(140,198,63,0.3);
+  color: var(--sprout); 
+  font-size: 0.84rem; 
+  font-weight: 600;
+  cursor: pointer; 
+  transition: background 0.15s; 
+  white-space: nowrap; 
+  flex-shrink: 0;
+}
+.adm-refresh-btn:hover:not(:disabled) { background: rgba(140,198,63,0.18); }
+.adm-refresh-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.adm-map-table-wrap { overflow-x: auto; }
+
+.adm-map-table-title {
+  font-size: 0.9rem; font-weight: 600; color: var(--txt);
+  margin-bottom: 0.85rem;
+}
+
+.adm-td-coords { 
+  font-size: 0.78rem; 
+  color: var(--txt-muted); 
+  white-space: nowrap; 
+}
+.adm-td-breakdown { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 0.3rem; 
+}
+.adm-breakdown-pill {
+  display: inline-block; font-size: 0.72rem; white-space: nowrap;
+  background: rgba(140,198,63,0.08); border: 1px solid rgba(140,198,63,0.2);
+  color: var(--sprout); padding: 0.15rem 0.5rem; border-radius: 20px;
+}
+
+.adm-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
 /* Top diseases table */
 .adm-disease-table {
   background: var(--adm-surface-2);

@@ -192,6 +192,12 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
       <div class="section-body"><p>${recs.description}</p></div>
     </div>` : ""}
 
+    ${recs?.weather_warnings?.length ? `
+    <div class="alert-box">
+      <div class="alert-title">⚠ Live Weather Alerts</div>
+      ${recs.weather_warnings.map(w => `<p>${w}</p>`).join("")}
+    </div>` : ""}
+
     ${recs?.symptoms?.length ? `
     <div class="section">
       <div class="section-head">Symptoms to Look For</div>
@@ -390,6 +396,12 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
       <div className="aim-tab-body" role="tabpanel">
 
         {tab === "diagnosis" && <>
+          {recs?.weather_warnings?.length > 0 && (
+            <div className="aim-alert-box">
+              <div className="aim-alert-title"><Icons.Alert /> Live Weather Alerts</div>
+              {recs.weather_warnings.map((w, i) => <p key={i}>{w}</p>)}
+            </div>
+          )}
           {recs?.description && (
             <div className="aim-info-box">
               <h4>About This Disease</h4>
@@ -541,6 +553,8 @@ export default function AIModel({ user }) {
   const [locationState, setLocationState] = useState("idle");
   const [soilType,      setSoilType]      = useState("");
   const [weather,       setWeather]       = useState(null);
+  const [latitude,      setLatitude]      = useState(null);
+  const [longitude,     setLongitude]     = useState(null);
 
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef(null);
@@ -579,6 +593,8 @@ export default function AIModel({ user }) {
     navigator.geolocation.getCurrentPosition(
       async ({ coords: { latitude, longitude } }) => {
         setLocationState("done");
+        setLatitude(latitude);
+        setLongitude(longitude);
         try {
           const res  = await fetch(WEATHER_URL(latitude, longitude));
           const data = await res.json();
@@ -627,6 +643,8 @@ export default function AIModel({ user }) {
       formData.append("user_email",   user?.email   || "");
       formData.append("soil_type",    soilType      || "");
       formData.append("weather",      weather ? JSON.stringify(weather) : "");
+      formData.append("latitude",     latitude  != null ? String(latitude)  : "");
+      formData.append("longitude",    longitude != null ? String(longitude) : "");
 
       const res = await fetch(PREDICT_URL, { method: "POST", body: formData });
       if (!res.ok) throw new Error("Could not analyze image.");
@@ -646,7 +664,7 @@ export default function AIModel({ user }) {
         setRecs({
           risk_level: "Low", description: "", symptoms: [],
           immediate: [], treatment: [], farming_practice: [],
-          other_crops_advice: [], prevention: [],
+          other_crops_advice: [], weather_warnings: [], prevention: [],
           next_season_crops: [],
         });
       }

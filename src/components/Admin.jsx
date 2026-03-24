@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
@@ -12,7 +12,90 @@ const API_BASE = "http://127.0.0.1:5000";
 
 const RISK_COLORS  = { High: "#c45c3a", Moderate: "#d4a843", Low: "#62a050", Healthy: "#8cc63f" };
 const CROP_COLORS  = { Tomato: "#e05a3a", Maize: "#d4a843", Potato: "#8cc63f" };
-const ADMIN_EMAILS = ["admin@cropdetect.ai"]; // ← keep in sync with Signin.jsx
+const ADMIN_EMAILS = ["admin@cropdetect.ai"];
+
+function DiseaseMapPanel({ cells }) {
+  const mapRef     = useRef(null);
+  const leafletRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current || cells.length === 0) return;
+
+    const init = () => {
+      const L = window.L;
+      if (!L) return;
+
+      if (leafletRef.current) {
+        leafletRef.current.remove();
+        leafletRef.current = null;
+      }
+
+      const avgLat = cells.reduce((s, c) => s + c.lat, 0) / cells.length;
+      const avgLon = cells.reduce((s, c) => s + c.lon, 0) / cells.length;
+
+      const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: true });
+      leafletRef.current = map;
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+        maxZoom: 18,
+      }).addTo(map);
+
+      map.setView([avgLat, avgLon], 6);
+
+      const maxScans = Math.max(...cells.map(c => c.total_scans), 1);
+
+      cells.forEach(cell => {
+        const radius  = 12000 + (cell.total_scans / maxScans) * 38000;
+        const color   = RISK_COLORS[cell.dominant_risk] || RISK_COLORS.Low;
+        const circle  = L.circle([cell.lat, cell.lon], {
+          radius,
+          color,
+          fillColor: color,
+          fillOpacity: 0.35,
+          weight: 2,
+          opacity: 0.8,
+        }).addTo(map);
+
+        const breakdown = cell.disease_breakdown
+          .map(d => `<div style="display:flex;justify-content:space-between;gap:1rem;font-size:0.78rem;padding:0.2rem 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+            <span>${d.disease}</span><strong>${d.count} scan${d.count !== 1 ? "s" : ""}</strong></div>`)
+          .join("");
+
+        circle.bindPopup(`
+          <div style="min-width:220px;font-family:sans-serif">
+            <div style="font-weight:700;font-size:1rem;margin-bottom:0.3rem">${cell.dominant_disease}</div>
+            <div style="font-size:0.75rem;color:#666;margin-bottom:0.75rem">${cell.lat.toFixed(2)}°, ${cell.lon.toFixed(2)}° · ${cell.total_scans} scan${cell.total_scans !== 1 ? "s" : ""}</div>
+            ${breakdown}
+          </div>
+        `, { maxWidth: 280 });
+      });
+    };
+
+    if (window.L) {
+      init();
+    } else {
+      const link = document.createElement("link");
+      link.rel  = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+
+      const script = document.createElement("script");
+      script.src   = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = init;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (leafletRef.current) {
+        leafletRef.current.remove();
+        leafletRef.current = null;
+      }
+    };
+  }, [cells]);
+
+  return <div ref={mapRef} className="adm-leaflet-map" />;
+} // ← keep in sync with Signin.jsx
 
 function StatCard({ icon, label, value, sub, accent }) {
   return (
@@ -107,6 +190,8 @@ export default function Admin({ user }) {
   const [error,       setError]       = useState("");
   const [confHistory, setConfHistory] = useState([]);
   const [exporting,   setExporting]   = useState(false);
+  const [mapCells,    setMapCells]    = useState([]);
+  const [mapLoading,  setMapLoading]  = useState(false);
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -148,6 +233,15 @@ export default function Admin({ user }) {
       .catch(() => {});
   }, []);
 
+  const loadDiseaseMap = useCallback(() => {
+    setMapLoading(true);
+    fetch(`${API_BASE}/api/admin/disease-map?precision=0.5`)
+      .then(r => r.json())
+      .then(d => setMapCells(d.cells || []))
+      .catch(() => setError("Could not load disease map data."))
+      .finally(() => setMapLoading(false));
+  }, []);
+
   const exportCSV = async () => {
     setExporting(true);
     try {
@@ -164,10 +258,40 @@ export default function Admin({ user }) {
     finally { setExporting(false); }
   };
 
+  const exportXLSX = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (predCrop) params.set("crop", predCrop);
+      const data = await fetch(`${API_BASE}/api/admin/predictions/export?${params}`).then(r => r.json());
+      const rows = data.results;
+      if (!rows.length) { alert("No predictions to export."); return; }
+      const headers = ["timestamp","user_email","crop","disease","confidence_str","confidence_pct","risk_level","soil_type","raw_label"];
+      const sheetRows = [headers, ...rows.map(r => headers.map(h => r[h] ?? ""))];
+      const colWidths = headers.map((h,i) => Math.max(h.length, ...sheetRows.slice(1).map(r => String(r[i]).length)) + 2);
+      const colXml  = colWidths.map(w => `<col width="${w}"/>`).join("");
+      const rowsXml = sheetRows.map(row => `<row>${row.map(cell => `<c t="inlineStr"><is><t>${String(cell).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</t></is></c>`).join("")}</row>`).join("");
+      const ws  = `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${colXml}</cols><sheetData>${rowsXml}</sheetData></worksheet>`;
+      const wb  = `<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Predictions" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+      const rel = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+      const ct  = `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+      const { default: JSZip } = await import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm");
+      const zip = new JSZip();
+      zip.file("[Content_Types].xml", ct);
+      zip.file("xl/workbook.xml", wb);
+      zip.file("xl/_rels/workbook.xml.rels", rel);
+      zip.file("xl/worksheets/sheet1.xml", ws);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `cropdetect_predictions_${new Date().toISOString().slice(0,10)}.xlsx` });
+      a.click();
+    } catch (e) { console.error(e); alert("XLSX export failed."); }
+    finally { setExporting(false); }
+  };
 
   useEffect(() => { if (activeTab === "predictions") loadPredictions(); }, [activeTab, loadPredictions]);
   useEffect(() => { if (activeTab === "users")       loadUsers();       }, [activeTab, loadUsers]);
   useEffect(() => { if (activeTab === "models")      loadConfHistory(); }, [activeTab, loadConfHistory]);
+  useEffect(() => { if (activeTab === "diseasemap")  loadDiseaseMap();  }, [activeTab, loadDiseaseMap]);
 
   if (!user) {
     return (
@@ -207,17 +331,18 @@ export default function Admin({ user }) {
             <div className="adm-nav-avatar">{avatarLetter}</div>
             <span className="adm-nav-email">{user.email}</span>
           </div>
-          <button className="adm-nav-back" onClick={() => navigate("/")}>← Dashboard</button>
+          <button className="adm-nav-back" onClick={() => navigate("/")}>← Home</button>
           <button className="adm-nav-signout" onClick={handleSignOut}>Sign Out</button>
         </div>
       </nav>
 
       <div className="adm-tabs">
         {[
-          { id: "overview",    label: "Overview"    },
-          { id: "predictions", label: "Predictions"  },
-          { id: "users",       label: "Users"        },
-          { id: "models",      label: "Models"       },
+          { id: "overview",    label: "Overview"      },
+          { id: "predictions", label: "Predictions"   },
+          { id: "users",       label: "Users"         },
+          { id: "models",      label: "Models"        },
+          { id: "diseasemap",  label: "Disease Map"   },
         ].map(t => (
           <button key={t.id} className={`adm-tab ${activeTab === t.id ? "adm-tab--active" : ""}`} onClick={() => setActiveTab(t.id)}>
             {t.label}
@@ -285,6 +410,9 @@ export default function Admin({ user }) {
               <div className="adm-export-group">
                 <button className="adm-export-btn" onClick={exportCSV} disabled={exporting || predictions.length === 0}>
                   {exporting ? "Exporting…" : "⬆ CSV"}
+                </button>
+                <button className="adm-export-btn adm-export-btn--xlsx" onClick={exportXLSX} disabled={exporting || predictions.length === 0}>
+                  {exporting ? "Exporting…" : "⬆ Excel"}
                 </button>
               </div>
               <div className="adm-filter-group">
@@ -437,6 +565,61 @@ export default function Admin({ user }) {
               </p>
             </div>
 
+          </div>
+        )}
+
+        {activeTab === "diseasemap" && (
+          <div className="adm-diseasemap">
+            <div className="adm-diseasemap-header">
+              <div>
+                <h3 className="adm-chart-title">Disease Prevalence by Region</h3>
+                <p className="adm-models-note">
+                  Each circle represents a ~50 km grid cell. Size reflects scan volume. Colour shows the dominant disease risk level. Only scans where the farmer shared their location are shown.
+                </p>
+              </div>
+              <button className="adm-refresh-btn" onClick={loadDiseaseMap} disabled={mapLoading}>
+                {mapLoading ? "Loading…" : "↻ Refresh"}
+              </button>
+            </div>
+
+            {mapLoading ? (
+              <div className="adm-loading"><div className="adm-spinner" /> Loading map data…</div>
+            ) : mapCells.length === 0 ? (
+              <div className="adm-empty">
+                <div className="adm-empty-icon">🗺️</div>
+                <p>No location data yet. Farmers need to share their location when scanning for this map to populate.</p>
+              </div>
+            ) : (
+              <>
+                <DiseaseMapPanel cells={mapCells} />
+                <div className="adm-map-table-wrap">
+                  <h4 className="adm-map-table-title">Regional Breakdown</h4>
+                  <table className="adm-table">
+                    <thead>
+                      <tr><th>Coordinates</th><th>Dominant Disease</th><th>Crop</th><th>Risk</th><th>Total Scans</th><th>All Diseases</th></tr>
+                    </thead>
+                    <tbody>
+                      {mapCells.map((cell, i) => (
+                        <tr key={i}>
+                          <td className="adm-td-coords">{cell.lat.toFixed(2)}°, {cell.lon.toFixed(2)}°</td>
+                          <td className="adm-td-disease">{cell.dominant_disease}</td>
+                          <td>{cell.dominant_crop}</td>
+                          <td><RiskPill level={cell.dominant_risk} /></td>
+                          <td><span className="adm-count-badge">{cell.total_scans}</span></td>
+                          <td className="adm-td-breakdown">
+                            {cell.disease_breakdown.map((d, j) => (
+                              <span key={j} className="adm-breakdown-pill">
+                                {d.disease} ({d.count})
+                              </span>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         )}
 
