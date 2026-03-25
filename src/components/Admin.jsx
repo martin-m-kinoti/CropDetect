@@ -258,36 +258,6 @@ export default function Admin({ user }) {
     finally { setExporting(false); }
   };
 
-  const exportXLSX = async () => {
-    setExporting(true);
-    try {
-      const params = new URLSearchParams();
-      if (predCrop) params.set("crop", predCrop);
-      const data = await fetch(`${API_BASE}/api/admin/predictions/export?${params}`).then(r => r.json());
-      const rows = data.results;
-      if (!rows.length) { alert("No predictions to export."); return; }
-      const headers = ["timestamp","user_email","crop","disease","confidence_str","confidence_pct","risk_level","soil_type","raw_label"];
-      const sheetRows = [headers, ...rows.map(r => headers.map(h => r[h] ?? ""))];
-      const colWidths = headers.map((h,i) => Math.max(h.length, ...sheetRows.slice(1).map(r => String(r[i]).length)) + 2);
-      const colXml  = colWidths.map(w => `<col width="${w}"/>`).join("");
-      const rowsXml = sheetRows.map(row => `<row>${row.map(cell => `<c t="inlineStr"><is><t>${String(cell).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</t></is></c>`).join("")}</row>`).join("");
-      const ws  = `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${colXml}</cols><sheetData>${rowsXml}</sheetData></worksheet>`;
-      const wb  = `<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Predictions" sheetId="1" r:id="rId1"/></sheets></workbook>`;
-      const rel = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
-      const ct  = `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
-      const { default: JSZip } = await import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm");
-      const zip = new JSZip();
-      zip.file("[Content_Types].xml", ct);
-      zip.file("xl/workbook.xml", wb);
-      zip.file("xl/_rels/workbook.xml.rels", rel);
-      zip.file("xl/worksheets/sheet1.xml", ws);
-      const blob = await zip.generateAsync({ type: "blob" });
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `cropdetect_predictions_${new Date().toISOString().slice(0,10)}.xlsx` });
-      a.click();
-    } catch (e) { console.error(e); alert("XLSX export failed."); }
-    finally { setExporting(false); }
-  };
-
   useEffect(() => { if (activeTab === "predictions") loadPredictions(); }, [activeTab, loadPredictions]);
   useEffect(() => { if (activeTab === "users")       loadUsers();       }, [activeTab, loadUsers]);
   useEffect(() => { if (activeTab === "models")      loadConfHistory(); }, [activeTab, loadConfHistory]);
@@ -357,12 +327,12 @@ export default function Admin({ user }) {
         {activeTab === "overview" && stats && (
           <div className="adm-overview">
             <div className="adm-stat-grid">
-              <StatCard icon="🔍" label="Total Scans"      value={stats.total_scans}  accent="var(--sprout)" />
-              <StatCard icon="👥" label="Registered Users" value={stats.total_users}  accent="#6ab3d4" />
-              <StatCard icon="🍃" label="Most Scanned Crop"
+              <StatCard label="Total Scans"      value={stats.total_scans}  accent="var(--sprout)" />
+              <StatCard label="Registered Users" value={stats.total_users}  accent="#6ab3d4" />
+              <StatCard label="Most Scanned Crop"
                 value={Object.entries(stats.crop_counts || {}).sort((a,b) => b[1]-a[1])[0]?.[0] || "—"}
                 accent="#e05a3a" />
-              <StatCard icon="⚠️" label="High Risk Scans"
+              <StatCard label="High Risk Scans"
                 value={stats.risk_dist?.["High"] || 0}
                 sub={`of ${stats.total_scans} total`} accent="#c45c3a" />
             </div>
@@ -410,9 +380,6 @@ export default function Admin({ user }) {
               <div className="adm-export-group">
                 <button className="adm-export-btn" onClick={exportCSV} disabled={exporting || predictions.length === 0}>
                   {exporting ? "Exporting…" : "⬆ CSV"}
-                </button>
-                <button className="adm-export-btn adm-export-btn--xlsx" onClick={exportXLSX} disabled={exporting || predictions.length === 0}>
-                  {exporting ? "Exporting…" : "⬆ Excel"}
                 </button>
               </div>
               <div className="adm-filter-group">
@@ -504,10 +471,6 @@ export default function Admin({ user }) {
 
         {activeTab === "models" && (
           <div className="adm-models">
-            <p className="adm-models-note">
-              Confidence statistics are computed live from all predictions logged in MongoDB.
-            </p>
-
             {stats?.model_accuracy && Object.keys(stats.model_accuracy).length > 0 ? (
               <div className="adm-acc-grid">
                 {["Tomato", "Maize", "Potato"].map(crop => (
@@ -530,9 +493,6 @@ export default function Admin({ user }) {
 
             <div className="adm-chart-card adm-chart-card--full" style={{ marginTop: "1.5rem" }}>
               <h3 className="adm-chart-title">Average Model Confidence Over Time</h3>
-              <p className="adm-models-note" style={{ marginBottom: "1.25rem" }}>
-                Mean prediction confidence per crop per day, based on real user scans.
-              </p>
               {confHistory.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={confHistory} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
@@ -560,9 +520,6 @@ export default function Admin({ user }) {
             <div className="adm-chart-card adm-chart-card--full" style={{ marginTop: "1rem" }}>
               <h3 className="adm-chart-title">Validation Accuracies (from training)</h3>
               <BarChart data={{ Tomato: 94, Maize: 95, Potato: 96 }} colorMap={CROP_COLORS} />
-              <p className="adm-models-note" style={{ marginTop: "0.75rem" }}>
-                Held-out validation set accuracy from model training.
-              </p>
             </div>
 
           </div>
@@ -573,9 +530,7 @@ export default function Admin({ user }) {
             <div className="adm-diseasemap-header">
               <div>
                 <h3 className="adm-chart-title">Disease Prevalence by Region</h3>
-                <p className="adm-models-note">
-                  Each circle represents a ~50 km grid cell. Size reflects scan volume. Colour shows the dominant disease risk level. Only scans where the farmer shared their location are shown.
-                </p>
+                
               </div>
               <button className="adm-refresh-btn" onClick={loadDiseaseMap} disabled={mapLoading}>
                 {mapLoading ? "Loading…" : "↻ Refresh"}

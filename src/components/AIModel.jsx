@@ -11,7 +11,6 @@ const RECS_URL    = (disease, crop, soil, otherCrops) =>
   `${API_BASE}/api/recommendations?disease=${encodeURIComponent(disease)}&crop=${encodeURIComponent(crop)}&soil=${encodeURIComponent(soil)}&crops=${encodeURIComponent(otherCrops)}`;
 
 const SUPPORTED_CROPS = ["Tomato", "Maize", "Potato"];
-const CROP_EMOJI = { Tomato: "🍅", Maize: "🌽", Potato: "🥔" };
 
 const DISEASE_LABEL_MAP = {
   "Tomato___Bacterial_spot":         "Bacterial Spot",
@@ -161,7 +160,6 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
 
   <div class="header">
     <div class="logo-row">
-      <div class="logo-box">🌿</div>
       <span class="logo-text">Crop<span>Detect</span></span>
     </div>
     <div class="report-label">Crop Disease Detection Report</div>
@@ -169,7 +167,7 @@ function generateReport({ prediction, confidence, selectedCrop, recs, weather, s
       <div>
         <div class="disease-name">${prediction}</div>
         <div class="meta-row">
-          <span class="crop-badge">${CROP_EMOJI[selectedCrop] || "🌱"} ${selectedCrop}</span>
+          <span class="crop-badge">${selectedCrop}</span>
           <span class="risk-badge">${recs?.risk_level || "Low"} Risk</span>
         </div>
       </div>
@@ -367,7 +365,7 @@ function ResultPanel({ prediction, confidence, selectedCrop, recs, weather, soil
       <div className="aim-result-header">
         <div className="aim-result-meta">
           <div className="aim-result-crop-badge">
-            {CROP_EMOJI[selectedCrop] || "🌱"} {selectedCrop}
+            {selectedCrop}
           </div>
           <div
             className="aim-risk-pill"
