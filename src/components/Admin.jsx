@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import "./Admin.css";
 
-const API_BASE = "http://127.0.0.1:5000";
+const API_BASE = "https://kinoti-raven025-cropdetect.hf.space"; {/*for local dev: http://localhost:5000*/}
 
 const RISK_COLORS  = { High: "#c45c3a", Moderate: "#d4a843", Low: "#62a050", Healthy: "#8cc63f" };
 const CROP_COLORS  = { Tomato: "#e05a3a", Maize: "#d4a843", Potato: "#8cc63f" };

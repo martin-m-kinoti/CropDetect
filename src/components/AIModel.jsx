@@ -4,7 +4,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "./AIModel.css";
 
-const API_BASE    =  "http://localhost:5000";
+const API_BASE    =  "https://kinoti-raven025-cropdetect.hf.space"; {/*for local dev: http://localhost:5000*/}
 const PREDICT_URL = `${API_BASE}/ml/predict`;
 const WEATHER_URL = (lat, lon) => `${API_BASE}/farm/api/farm-data?lat=${lat}&lon=${lon}`;
 const RECS_URL    = (disease, crop, soil, otherCrops) =>
