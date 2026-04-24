@@ -1340,19 +1340,6 @@ body  {
   opacity: 1;
 }
 
-.db-feature-icon  {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  margin-bottom: 1.25rem;
-}
-
 .db-feature-card h3  {
   font-family: var(--ff-display);
   font-size: 1.1rem;

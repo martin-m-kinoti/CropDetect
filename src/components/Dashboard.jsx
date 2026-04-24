@@ -103,12 +103,12 @@ const SEARCHABLE_CONTENT = [
 ];
 
 const FEATURES = [
-  { icon: <Microscope size={22} />, accent: "var(--moss)",  title: "AI-Powered Detection",     text: "Three dedicated models, trained on 80,000+ images across tomato, maize, and potato crops. Achieving over 90% accuracy."  },
-  { icon: <Zap size={22} />,        accent: "var(--gold)",  title: "Instant Results",           text: "Get your diagnosis and tailored treatment plan in under 5 seconds. No waiting, no lab visits."                            },
-  { icon: <Pill size={22} />,       accent: "var(--rust)",  title: "Treatment Recommendations", text: "Receive specific, actionable steps for each detected disease. From fungicides to cultural practices."                     },
-  { icon: <BarChart2 size={22} />,  accent: "var(--moss)",  title: "Scan History",              text: "Track the health of all your crops over time with a full history of scans and outcomes."                                  },
-  { icon: <Smartphone size={22} />, accent: "var(--gold)",  title: "Works on Any Device",       text: "Use Crop Detect from your phone in the field, your tablet in the greenhouse, or your desktop at home."                    },
-  { icon: <Lock size={22} />,       accent: "var(--rust)",  title: "Secure & Private",          text: "Your farm data is yours. We never share your images or scan results with third parties."                                  },
+  { accent: "var(--moss)",  title: "AI-Powered Detection",     text: "Three dedicated models, trained on 80,000+ images across tomato, maize, and potato crops. Achieving over 90% accuracy."  },
+  { accent: "var(--gold)",  title: "Instant Results",           text: "Get your diagnosis and tailored treatment plan in under 5 seconds. No waiting, no lab visits."                            },
+  { accent: "var(--rust)",  title: "Treatment Recommendations", text: "Receive specific, actionable steps for each detected disease. From fungicides to cultural practices."                     },
+  { accent: "var(--moss)",  title: "Scan History",              text: "Track the health of all your crops over time with a full history of scans and outcomes."                                  },
+  { accent: "var(--gold)",  title: "Works on Any Device",       text: "Use Crop Detect from your phone in the field, your tablet in the greenhouse, or your desktop at home."                    },
+  { accent: "var(--rust)",  title: "Secure & Private",          text: "Your farm data is yours. We never share your images or scan results with third parties."                                  },
 ];
 
 const STEPS = [
@@ -569,7 +569,6 @@ export default function Dashboard({ user }) {
           {FEATURES.map((f, i) => (
             <Reveal key={i} delay={i * 80}>
               <div className="db-feature-card">
-                <div className="db-feature-icon" style={{ "--accent": f.accent }}>{f.icon}</div>
                 <h3>{f.title}</h3>
                 <p>{f.text}</p>
                 <div className="db-feature-bar" style={{ background: f.accent }} />

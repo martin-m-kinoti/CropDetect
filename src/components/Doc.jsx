@@ -41,8 +41,6 @@ const CROPS = [
     limitations: [
       "Best accuracy on single, well-lit leaves",
       "Performance drops in very low light",
-      "Does not yet detect fruit-level disease",
-      "Solanaceous species only (not general plant)",
     ],
   },
   {
@@ -76,7 +74,6 @@ const CROPS = [
     ],
     limitations: [
       "Leaf must be isolated, not bunched",
-      "Corn smut and stalk rot not yet covered",
       "Accuracy lower on severely damaged leaves",
       "Single-leaf input only (no field panoramic)",
     ],
@@ -328,92 +325,6 @@ export default function Documentation() {
 
           <div role="tabpanel">
             <CropSection key={activeCrop} crop={crop} />
-          </div>
-        </section>
-
-        <section className="doc-section" aria-labelledby="api-heading">
-          <h2 id="api-heading" className="doc-section-title">API Reference</h2>
-          <p className="doc-section-sub">
-            Two endpoints power the frontend. Both run on the Flask backend at{" "}
-            <code className="doc-inline-code">http://127.0.0.1:5000</code>.
-          </p>
-
-          <div className="doc-api-block">
-            <div className="doc-api-header">
-              <span className="doc-method">POST</span>
-              <span className="doc-endpoint">/ml/predict</span>
-              <span className="doc-api-desc">Disease detection</span>
-            </div>
-            <pre className="doc-pre">{API_EXAMPLE}</pre>
-          </div>
-
-          <div className="doc-api-block">
-            <div className="doc-api-header">
-              <span className="doc-method doc-method--get">GET</span>
-              <span className="doc-endpoint">/api/recommendations</span>
-              <span className="doc-api-desc">Context-aware treatment advice</span>
-            </div>
-            <pre className="doc-pre">{RECS_EXAMPLE}</pre>
-          </div>
-        </section>
-
-        <section className="doc-section" aria-labelledby="data-heading">
-          <h2 id="data-heading" className="doc-section-title">Training Data</h2>
-          <div className="doc-data-grid">
-            {[
-              { crop: "Tomato", source: "PlantVillage dataset",    classes: 10, note: "Thousands of annotated leaf images" },
-              { crop: "Maize",  source: "PlantVillage dataset",    classes: 4,  note: "Field and lab conditions included" },
-              { crop: "Potato", source: "PlantVillage dataset",    classes: 3,  note: "Highland and lowland varieties" },
-            ].map(row => (
-              <div key={row.crop} className="doc-data-card">
-                <div className="doc-data-crop">{row.crop}</div>
-                <div className="doc-data-source">{row.source}</div>
-                <div className="doc-data-classes">{row.classes} classes</div>
-                <p className="doc-data-note">{row.note}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="doc-section" aria-labelledby="roadmap-heading">
-          <h2 id="roadmap-heading" className="doc-section-title">Roadmap</h2>
-          <div className="doc-roadmap">
-            {[
-              { status: "done",  label: "Tomato disease detection (10 classes)"         },
-              { status: "done",  label: "Maize disease detection (4 classes)"            },
-              { status: "done",  label: "Potato disease detection (3 classes)"           },
-              { status: "done",  label: "Live weather & soil context integration"        },
-              { status: "next",  label: "Severity estimation (mild / moderate / severe)" },
-              { status: "next",  label: "Field-level multi-leaf detection"               },
-              { status: "next",  label: "Beans and cassava disease models"               },
-              { status: "later", label: "SMS-based diagnosis for feature phones"         },
-            ].map((item, i) => (
-              <div key={i} className={`doc-roadmap-item doc-roadmap-item--${item.status}`}>
-                <div className="doc-roadmap-dot" />
-                <span>{item.label}</span>
-                <span className="doc-roadmap-badge">
-                  {item.status === "done"  ? "✅ Live"   : ""}
-                  {item.status === "next"  ? "🔜 Next"  : ""}
-                  {item.status === "later" ? "💡 Planned": ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="doc-section doc-section--last" aria-labelledby="support-heading">
-          <h2 id="support-heading" className="doc-section-title">Support</h2>
-          <div className="doc-support-card">
-            <p>
-              For technical support, bug reports, or research collaboration,
-              reach the CropDetect team at{" "}
-              <a href="mailto:support@cropdetect.ai" className="doc-link">
-                support@cropdetect.ai
-              </a>
-            </p>
-            <button className="doc-cta-btn" onClick={() => navigate("/ai-model")}>
-              Start Diagnosing →
-            </button>
           </div>
         </section>
 
