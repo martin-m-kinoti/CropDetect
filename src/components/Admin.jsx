@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import "./Admin.css";
 
-const API_BASE = "https://kinoti-raven025-cropdetect.hf.space"; {/*for local dev: http://localhost:5000*/}
+const API_BASE    =  "https://kinoti-raven025-cropdetect.hf.space"; {/*for dev: http://localhost:5000*/}
 
 const RISK_COLORS  = { High: "#c45c3a", Moderate: "#d4a843", Low: "#62a050", Healthy: "#8cc63f" };
 const CROP_COLORS  = { Tomato: "#e05a3a", Maize: "#d4a843", Potato: "#8cc63f" };
@@ -551,7 +551,7 @@ export default function Admin({ user }) {
                   <h4 className="adm-map-table-title">Regional Breakdown</h4>
                   <table className="adm-table">
                     <thead>
-                      <tr><th>Coordinates</th><th>Dominant Disease</th><th>Crop</th><th>Risk</th><th>Total Scans</th><th>All Diseases</th></tr>
+                      <tr><th>Coordinates</th><th>Dominant Disease</th><th>Crop</th><th>Risk</th><th>Total Scans</th></tr>
                     </thead>
                     <tbody>
                       {mapCells.map((cell, i) => (
@@ -561,13 +561,6 @@ export default function Admin({ user }) {
                           <td>{cell.dominant_crop}</td>
                           <td><RiskPill level={cell.dominant_risk} /></td>
                           <td><span className="adm-count-badge">{cell.total_scans}</span></td>
-                          <td className="adm-td-breakdown">
-                            {cell.disease_breakdown.map((d, j) => (
-                              <span key={j} className="adm-breakdown-pill">
-                                {d.disease} ({d.count})
-                              </span>
-                            ))}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
