@@ -379,7 +379,7 @@ export default function Admin({ user }) {
               <span className="adm-total-badge">{predTotal} total</span>
               <div className="adm-export-group">
                 <button className="adm-export-btn" onClick={exportCSV} disabled={exporting || predictions.length === 0}>
-                  {exporting ? "Exporting…" : "⬆ CSV"}
+                  {exporting ? "Exporting…" : "⬆ Export CSV"}
                 </button>
               </div>
               <div className="adm-filter-group">
