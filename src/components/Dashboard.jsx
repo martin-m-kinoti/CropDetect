@@ -250,7 +250,7 @@ export default function Dashboard({ user }) {
             </Link>
           ) : (
             <Link to="/ai-model" className="db-nav-cta">
-              Try AI Model <ArrowUpRight size={14} />
+              AI Model <ArrowUpRight size={14} />
             </Link>
           )}
         </div>
@@ -633,7 +633,7 @@ export default function Dashboard({ user }) {
               maize, and potato diseases before they spread.
             </p>
             <Link to="/ai-model" className="db-btn-primary db-btn-primary--light">
-              Start Your Free Scan
+              Start Your Scan
               <ArrowUpRight size={16} />
             </Link>
           </div>

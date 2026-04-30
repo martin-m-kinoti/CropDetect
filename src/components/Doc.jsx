@@ -2,333 +2,235 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Doc.css";
 
-const CROPS = [
-  {
-    id:    "tomato",
-    label: "Tomato",
-    accent: "#e05a3a",
-    accentMuted: "rgba(224,90,58,0.12)",
-    accentBorder: "rgba(224,90,58,0.28)",
-    classes: [
-      "Bacterial Spot",
-      "Early Blight",
-      "Late Blight",
-      "Leaf Mold",
-      "Septoria Leaf Spot",
-      "Spider Mites (Two-spotted Mite)",
-      "Target Spot",
-      "Yellow Leaf Curl Virus",
-      "Mosaic Virus",
-      "Healthy",
-    ],
-    model: {
-      base:       "MobileNetV2 (transfer learning)",
-      inputSize:  "224 × 224 RGB",
-      optimizer:  "Adam",
-      loss:       "Categorical Crossentropy",
-      classes:    "10 classes",
-      accuracy:   "90 – 97%",
-    },
-    pipeline: [
-      "Upload a clear tomato leaf photograph",
-      "Image is resized to 224 × 224 pixels",
-      "Pixel values normalised to [0, 1]",
-      "MobileNetV2 extracts visual features",
-      "Softmax layer outputs disease probabilities",
-      "Highest-confidence class is returned",
-      "Recommendation engine maps disease → treatment",
-    ],
-    limitations: [
-      "Best accuracy on single, well-lit leaves",
-      "Performance drops in very low light",
-    ],
-  },
-  {
-    id:    "maize",
-    label: "Maize",
-    accent: "#d4a843",
-    accentMuted: "rgba(212,168,67,0.12)",
-    accentBorder: "rgba(212,168,67,0.28)",
-    classes: [
-      "Cercospora Leaf Spot (Grey Leaf Spot)",
-      "Common Rust",
-      "Northern Leaf Blight",
-      "Healthy",
-    ],
-    model: {
-      base:       "MobileNetV2 (transfer learning)",
-      inputSize:  "224 × 224 RGB",
-      optimizer:  "Adam",
-      loss:       "Categorical Crossentropy",
-      classes:    "4 classes",
-      accuracy:   "92 – 96%",
-    },
-    pipeline: [
-      "Upload a clear maize leaf photograph",
-      "Image is resized to 224 × 224 pixels",
-      "Pixel values normalised to [0, 1]",
-      "MobileNetV2 extracts visual features",
-      "Softmax layer outputs disease probabilities",
-      "Highest-confidence class is returned",
-      "Recommendation engine maps disease → treatment",
-    ],
-    limitations: [
-      "Leaf must be isolated, not bunched",
-      "Accuracy lower on severely damaged leaves",
-      "Single-leaf input only (no field panoramic)",
-    ],
-  },
-  {
-    id:    "potato",
-    label: "Potato",
-    accent: "#8cc63f",
-    accentMuted: "rgba(140,198,63,0.12)",
-    accentBorder: "rgba(140,198,63,0.28)",
-    classes: [
-      "Early Blight",
-      "Late Blight",
-      "Healthy",
-    ],
-    model: {
-      base:       "MobileNetV2 (transfer learning)",
-      inputSize:  "224 × 224 RGB",
-      optimizer:  "Adam",
-      loss:       "Categorical Crossentropy",
-      classes:    "3 classes",
-      accuracy:   "93 – 98%",
-    },
-    pipeline: [
-      "Upload a clear potato leaf photograph",
-      "Image is resized to 224 × 224 pixels",
-      "Pixel values normalised to [0, 1]",
-      "MobileNetV2 extracts visual features",
-      "Softmax layer outputs disease probabilities",
-      "Highest-confidence class is returned",
-      "Recommendation engine maps disease → treatment",
-    ],
-    limitations: [
-      "Leaf surface must be clearly visible",
-      "Tuber diseases not yet supported",
-      "Accuracy lower on wet or muddy leaves",
-      "Night photography not recommended",
-    ],
-  },
+const STEPS = [
+  { title: "Open the App",         desc: "Open CropDetect on your phone and sign in to your account." },
+  { title: "Choose Your Crop",     desc: "Select whether you are growing Tomato, Maize, or Potato." },
+  { title: "Take a Clear Photo",   desc: "Take a close photo of one sick leaf. Make sure the leaf fills most of the screen." },
+  { title: "Tap Predict",          desc: "Press the green Predict button and wait a few seconds." },
+  { title: "Read Your Result",     desc: "The app will tell you the disease name and what to do about it." },
+  { title: "Follow the Treatment", desc: "Read the treatment steps carefully and act quickly for the best results." },
 ];
 
-const API_EXAMPLE = `POST /ml/predict
-Content-Type: multipart/form-data
+const CROPS = {
+  tomato: {
+    label: "Tomato",
+    tab:   "tomato",
+    diseases: [
+      { name: "Early Blight",           sign: "Brown spots with yellow rings on older leaves",        sev: "medium" },
+      { name: "Late Blight",            sign: "Dark, water-soaked patches that spread fast",          sev: "high"   },
+      { name: "Leaf Mold",              sign: "Yellow patches on top of leaf, grey-brown below",      sev: "medium" },
+      { name: "Septoria Leaf Spot",     sign: "Small round spots with dark edges and pale centres",   sev: "medium" },
+      { name: "Spider Mites",           sign: "Tiny dots and fine webbing under the leaf",            sev: "medium" },
+      { name: "Yellow Leaf Curl Virus", sign: "Leaves curl upward and turn yellow from the edges",    sev: "high"   },
+      { name: "Mosaic Virus",           sign: "Patchy light and dark green pattern on leaves",        sev: "high"   },
+      { name: "Bacterial Spot",         sign: "Small dark water-soaked spots, sometimes with yellow", sev: "medium" },
+      { name: "Target Spot",            sign: "Circular spots with rings, like a dart board",         sev: "medium" },
+      { name: "Healthy",                sign: "No signs of disease. Your crop looks good!",          sev: "low"    },
+    ],
+  },
+  maize: {
+    label: "Maize",
+    tab:   "maize",
+    diseases: [
+      { name: "Grey Leaf Spot",        sign: "Long narrow grey-brown streaks along the leaf",        sev: "high"   },
+      { name: "Common Rust",           sign: "Raised orange-brown powder spots on both leaf sides",  sev: "medium" },
+      { name: "Northern Leaf Blight",  sign: "Long cigar-shaped grey-green lesions on leaves",       sev: "high"   },
+      { name: "Healthy",               sign: "No signs of disease. Your crop looks good!",          sev: "low"    },
+    ],
+  },
+  potato: {
+    label: "Potato",
+    tab:   "potato",
+    diseases: [
+      { name: "Early Blight", sign: "Brown spots with yellow rings, starting on older leaves", sev: "medium" },
+      { name: "Late Blight",  sign: "Dark, fast-spreading water-soaked patches",               sev: "high"   },
+      { name: "Healthy",      sign: "No signs of disease. Your crop looks good!",             sev: "low"    },
+    ],
+  },
+};
 
-Body fields:
-  image_upload  (file)    — leaf photo
-  crop          (string)  — "Tomato" | "Maize" | "Potato"
+const PHOTO_TIPS = {
+  good: [
+    { label: "Good Light",     desc: "Take photos in daylight, outside or near a window" },
+    { label: "One Leaf",       desc: "Focus on a single sick leaf, up close" },
+    { label: "Flat and Clear", desc: "Hold the leaf flat so the spots are clearly visible" },
+    { label: "Steady Hand",    desc: "Hold still so the photo is not blurry" },
+  ],
+  bad: [
+    { label: "Avoid Darkness", desc: "Night or dark shade photos give poor results" },
+    { label: "Too Far Away",   desc: "Do not stand far back — the leaf must fill the screen" },
+    { label: "Wet Leaves",     desc: "Dry leaves give better results than wet ones" },
+    { label: "Many Leaves",    desc: "Do not photograph a whole bunch of leaves at once" },
+  ],
+};
 
-─────────────────────────────────────
-Response (200 OK):
+const RESULT_ROWS = [
+  { label: "Disease Name",    value: "The name of the disease found on your leaf, or 'Healthy' if no disease is detected." },
+  { label: "Confidence",      value: "How sure the AI is about the result — a higher percentage means the app is more confident." },
+  { label: "Risk Level",      value: "High means act today. Moderate means act soon. Low means keep watching your crops." },
+  { label: "What To Do Now",  value: "Step-by-step treatment actions you can take immediately to protect your crop." },
+  { label: "Prevention Tips", value: "Simple steps to stop the disease from spreading to healthy plants." },
+];
 
-{
-  "crop":             "Tomato",
-  "predicted_disease": "Tomato___Early_blight",
-  "confidence":       "94.23%"
-}`;
+const FAQS = [
+  { q: "Does the app work without internet?",       a: "The app needs an internet connection to analyse your photo. A basic mobile data connection is enough — it does not use much data." },
+  { q: "What if my phone camera is not very good?", a: "Most phone cameras work well. Just make sure the leaf is in focus and you are in good light. Avoid taking photos at night or in very dark shade." },
+  { q: "Can I use the app for other crops?",        a: "Right now the app works for Tomato, Maize, and Potato. More crops will be added soon." },
+  { q: "What if the app gives the wrong answer?",   a: "The app is very accurate but not perfect. If you are unsure, take another photo in better light, or show the result to your local agricultural officer." },
+  { q: "Is my information safe?",                   a: "Yes. Your photos and results are stored securely and are only visible to you. We do not share your personal details with anyone." },
+];
 
-const RECS_EXAMPLE = `GET /api/recommendations
-  ?disease=Early%20Blight
-  &crop=Tomato
-  &soil=Sandy%20Clay%20Loam
-  &crops=maize%2Cbeans
-
-─────────────────────────────────────
-Response (200 OK):
-
-{
-  "disease":          "Early Blight",
-  "crop":             "tomato",
-  "risk_level":       "High",
-  "description":      "Fungal disease caused by Alternaria solani…",
-  "symptoms":         ["Dark brown spots with yellow halos", …],
-  "immediate":        ["Remove infected leaves now", …],
-  "treatment":        ["Apply copper-based fungicide", …],
-  "farming_practice": "For clay soils, improve drainage…",
-  "prevention":       ["Rotate crops annually", …],
-  "weather_warnings": ["Rain forecast — delay spraying", …],
-  "other_crops_advice": ["Maize is not at risk from Early Blight", …]
-}`;
-
-function CheckItem({ children }) {
+/* FAQ component */
+function FAQ({ items }) {
+  const [open, setOpen] = useState(null);
   return (
-    <li className="doc-check-item">
-      <svg className="doc-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
-      <span>{children}</span>
-    </li>
-  );
-}
-
-function NumberItem({ num, children }) {
-  return (
-    <li className="doc-num-item">
-      <div className="doc-num-badge">{num}</div>
-      <span>{children}</span>
-    </li>
-  );
-}
-
-function ModelSpec({ label, value }) {
-  return (
-    <div className="doc-spec-row">
-      <span className="doc-spec-key">{label}</span>
-      <span className="doc-spec-val">{value}</span>
-    </div>
-  );
-}
-
-function CropSection({ crop }) {
-  return (
-    <div className="doc-crop-section">
-
-      <div className="doc-block">
-        <h3 className="doc-block-title" style={{ color: crop.accent }}>
-          Supported Disease Classes
-        </h3>
-        <div className="doc-class-grid">
-          {crop.classes.map((cls, i) => (
-            <div
-              key={cls}
-              className="doc-class-chip"
-              style={{
-                background:   cls === "Healthy" ? "rgba(140,198,63,0.08)" : crop.accentMuted,
-                borderColor:  cls === "Healthy" ? "rgba(140,198,63,0.25)" : crop.accentBorder,
-                color:        cls === "Healthy" ? "#8cc63f" : crop.accent,
-              }}
-            >
-              {cls}
-            </div>
-          ))}
+    <div className="faq-list">
+      {items.map((item, i) => (
+        <div className="faq-item" key={i}>
+          <button className="faq-q" onClick={() => setOpen(open === i ? null : i)}>
+            <span>{item.q}</span>
+            <span className={`faq-arrow ${open === i ? "open" : ""}`}>▾</span>
+          </button>
+          {open === i && <div className="faq-a">{item.a}</div>}
         </div>
-      </div>
-
-      <div className="doc-block">
-        <h3 className="doc-block-title" style={{ color: crop.accent }}>
-          Model Architecture
-        </h3>
-        <div className="doc-spec-table">
-          <ModelSpec label="Base Model"      value={crop.model.base}       />
-          <ModelSpec label="Input Size"      value={crop.model.inputSize}  />
-          <ModelSpec label="Optimizer"       value={crop.model.optimizer}  />
-          <ModelSpec label="Loss Function"   value={crop.model.loss}       />
-          <ModelSpec label="Output Classes"  value={crop.model.classes}    />
-          <ModelSpec label="Validation Acc." value={crop.model.accuracy}   />
-        </div>
-      </div>
-
-      <div className="doc-block">
-        <h3 className="doc-block-title" style={{ color: crop.accent }}>
-          Processing Pipeline
-        </h3>
-        <ol className="doc-num-list">
-          {crop.pipeline.map((step, i) => (
-            <NumberItem key={i} num={i + 1}>{step}</NumberItem>
-          ))}
-        </ol>
-      </div>
-
-      <div className="doc-block">
-        <h3 className="doc-block-title" style={{ color: crop.accent }}>
-          Known Limitations
-        </h3>
-        <ul className="doc-check-list">
-          {crop.limitations.map((l, i) => <CheckItem key={i}>{l}</CheckItem>)}
-        </ul>
-      </div>
-
+      ))}
     </div>
   );
 }
 
 export default function Documentation() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const [activeCrop, setActiveCrop] = useState("tomato");
-  const crop = CROPS.find(c => c.id === activeCrop);
+  const crop = CROPS[activeCrop];
 
   return (
-    <div className="doc-page">
-
-      <nav className="doc-nav">
-        <button className="doc-nav-brand" onClick={() => navigate("/")}>
-          <img src="/logo.png" alt="CropDetect" className="doc-nav-logo" />
-          <span className="doc-nav-wordmark">Crop<span>Detect</span></span>
-        </button>
-        <button className="doc-nav-cta" onClick={() => navigate("/ai-model")}>
-          Try the AI Model →
+    <>
+      <nav className="dn">
+        <button className="dn-brand" onClick={() => navigate("/")}>
+          <img src="/logo.png" alt="CropDetect" className="dn-logo" />
+          <span className="dn-word">Crop<span>Detect</span></span>
         </button>
       </nav>
 
-      <main className="doc-main">
+      <header className="dh">
+        <div className="dh-tag">How It Works</div>
+        <h1 className="dh-title">Your Guide to Using CropDetect</h1>
+        <p className="dh-desc">
+          Simple steps to detect crop disease and get treatment advice right from your phone.
+        </p>
+        <button className="dh-btn" onClick={() => navigate("/ai-model")}>
+          Start Detecting
+        </button>
+      </header>
 
-        <header className="doc-hero">
-          <div className="doc-hero-tag">Documentation</div>
-          <h1 className="doc-hero-title">
-            CropDetect AI Model
-          </h1>
-          <p className="doc-hero-desc">
-            Three specialist deep-learning models — one each for tomato, maize, and potato —
-            detecting leaf diseases from a single photograph and delivering context-aware
-            treatment advice for Kenyan smallholder farmers.
-          </p>
-        </header>
+      <main className="dm">
 
-        <section className="doc-section" aria-labelledby="overview-heading">
-          <h2 id="overview-heading" className="doc-section-title">System Overview</h2>
-          <div className="doc-overview-grid">
-            {[
-              { label: "3 ML Models",     desc: "Separate specialist models for tomato, maize, and potato" },
-              { label: "Photo Input",      desc: "Upload or photograph a single leaf — results in seconds" },
-              { label: "Live Context",     desc: "Weather, soil type and neighbouring crops shape every result" },
-              { label: "Treatment Plans",  desc: "Immediate actions, fungicides, and prevention — in plain language" },
-            ].map(card => (
-              <div key={card.label} className="doc-overview-card">
-                <div className="doc-overview-icon">{card.icon}</div>
-                <div>
-                  <div className="doc-overview-label">{card.label}</div>
-                  <p className="doc-overview-desc">{card.desc}</p>
+        <section className="ds">
+          <h2 className="ds-title">How to Use the App</h2>
+          <p className="ds-sub">Follow these simple steps</p>
+          <div className="step-list">
+            {STEPS.map((s, i) => (
+              <div className="step-card" key={i}>
+                <div className="step-num">{i + 1}</div>
+                <div className="step-body">
+                  <div className="step-title">{s.title}</div>
+                  <div className="step-desc">{s.desc}</div>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="doc-section" aria-labelledby="crops-heading">
-          <h2 id="crops-heading" className="doc-section-title">Crop Models</h2>
-          <p className="doc-section-sub">
-            Each crop runs on its own trained model with dedicated class labels and disease mappings.
-          </p>
+        <section className="ds">
+          <h2 className="ds-title">How to Take a Good Photo</h2>
+          <p className="ds-sub">A clear photo gives a better result</p>
 
-          <div className="doc-crop-tabs" role="tablist">
-            {CROPS.map(c => (
+          <p className="do-label">Do this</p>
+          <div className="photo-grid" style={{ marginBottom: 16 }}>
+            {PHOTO_TIPS.good.map((p, i) => (
+              <div className="photo-card good" key={i}>
+                <div className="photo-card-label">{p.label}</div>
+                <div className="photo-card-desc">{p.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="dont-label">Avoid this</p>
+          <div className="photo-grid">
+            {PHOTO_TIPS.bad.map((p, i) => (
+              <div className="photo-card bad" key={i}>
+                <div className="photo-card-label">{p.label}</div>
+                <div className="photo-card-desc">{p.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="tip-box">
+            <div className="tip-text">
+              Tip: Take the photo in the morning when the leaf is dry and the light is good.
+            </div>
+          </div>
+        </section>
+
+        <section className="ds">
+          <h2 className="ds-title">Diseases the App Can Detect</h2>
+          <p className="ds-sub">Select your crop to see the list</p>
+
+          <div className="crop-tabs">
+            {Object.values(CROPS).map(c => (
               <button
-                key={c.id}
-                role="tab"
-                aria-selected={activeCrop === c.id}
-                className={`doc-crop-tab ${activeCrop === c.id ? "doc-crop-tab--active" : ""}`}
-                style={activeCrop === c.id ? {
-                  borderColor: c.accent,
-                  color: c.accent,
-                  background: c.accentMuted,
-                } : {}}
-                onClick={() => setActiveCrop(c.id)}
+                key={c.tab}
+                className={`crop-tab ${activeCrop === c.tab ? `active-${c.tab}` : ""}`}
+                onClick={() => setActiveCrop(c.tab)}
               >
-                <span>{c.label}</span>
+                {c.label}
               </button>
             ))}
           </div>
 
-          <div role="tabpanel">
-            <CropSection key={activeCrop} crop={crop} />
+          <div className="disease-grid">
+            {crop.diseases.map((d, i) => (
+              <div className={`disease-card severity-${d.sev}`} key={i}>
+                <div className="disease-name">{d.name}</div>
+                <div className="disease-sign">Signs: {d.sign}</div>
+                <span className={`sev-pill sev-${d.sev}`}>
+                  {d.sev === "high" ? "Act Fast" : d.sev === "medium" ? "Act Soon" : "No Action Needed"}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 
+        <section className="ds">
+          <h2 className="ds-title">Understanding Your Result</h2>
+          <p className="ds-sub">Here is what each part of the result means</p>
+          <div className="result-box">
+            {RESULT_ROWS.map((r, i) => (
+              <div className="result-row" key={i}>
+                <div className="result-label">{r.label}</div>
+                <div className="result-value">{r.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="ds">
+          <h2 className="ds-title">Common Questions</h2>
+          <p className="ds-sub">Answers to questions farmers often ask</p>
+          <FAQ items={FAQS} />
+        </section>
+
+        <div className="dcta">
+          <div className="dcta-title">Ready to check your crops?</div>
+          <p className="dcta-sub">
+            Take a photo of any sick leaf and get your result in seconds.
+          </p>
+          <button className="dcta-btn" onClick={() => navigate("/ai-model")}>
+            Start Detecting Now
+          </button>
+        </div>
+
       </main>
-    </div>
+    </>
   );
 }
