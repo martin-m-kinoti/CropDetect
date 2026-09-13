@@ -1,4 +1,4 @@
-# Crop Detect AI — Frontend
+# Crop Detect AI: Frontend
 
 A mobile-first React application that enables Kenyan farmers to detect crop diseases through photo capture and AI analysis.
 
